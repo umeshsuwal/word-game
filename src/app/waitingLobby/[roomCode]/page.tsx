@@ -10,14 +10,18 @@ export default function WaitingLobby() {
   const router = useRouter();
   const name = searchParams.get("name") ?? "";
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
+  const [hostId, setHostId] = useState<string | null>(null);
+  const [myId, setMyId] = useState<string | null>(null);
+  const [gameStarted, setGameStarted] = useState(false);
 
   useEffect(() => {
     if (!socket) return;
     socket.emit("join_room", { name, roomCode }); // ensure rejoin if refreshed
 
     // Handler that deduplicates users by id before updating state
-    const handleUpdateUsers = (incoming: { id: string; name: string }[]) => {
-      if (!Array.isArray(incoming)) return;
+    const handleUpdateUsers = (payload: { users: { id: string; name: string }[]; hostId?: string }) => {
+      if (!payload || !Array.isArray(payload.users)) return;
+      const incoming = payload.users;
       const seen = new Set<string>();
       const deduped = incoming.filter((u) => {
         if (!u || typeof u.id !== "string") return false;
@@ -26,14 +30,25 @@ export default function WaitingLobby() {
         return true;
       });
       setUsers(deduped);
+      setHostId(payload.hostId ?? null);
     };
 
     socket.on("update_users", handleUpdateUsers);
     socket.on("error_message", (msg: string) => alert(msg));
+    socket.on("game_started", ({ roomCode: rc }) => {
+      if (rc === roomCode) {
+        setGameStarted(true);
+        router.push(`/game/${roomCode}`);
+      }
+    });
+
+    // set my socket id
+    setMyId(socket.id ?? null);
     return () => {
       if (!socket) return;
       socket.off("update_users", handleUpdateUsers);
       socket.off("error_message");
+      socket.off("game_started");
     };
   }, [name, roomCode]);
 
@@ -58,12 +73,30 @@ export default function WaitingLobby() {
           Share this code with friends: <span className="font-semibold">{roomCode}</span>
         </p>
 
-        <button
-          className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-          onClick={() => router.push("/")}
-        >
-          Leave Room
-        </button>
+        <div className="w-full flex flex-col items-center gap-2">
+          {gameStarted ? (
+            <p className="text-green-600 font-semibold">Game started!</p>
+          ) : hostId && myId && hostId === myId ? (
+            <button
+              className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+              onClick={() => {
+                if (!socket) return;
+                socket.emit("start_game", { roomCode });
+              }}
+            >
+              Start Game
+            </button>
+          ) : (
+            <p className="text-gray-500">Waiting for host to start...</p>
+          )}
+
+          <button
+            className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+            onClick={() => router.push("/")}
+          >
+            Leave Room
+          </button>
+        </div>
       </div>
     </div>
   );
