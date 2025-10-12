@@ -1,0 +1,30 @@
+export interface Player {
+  id: string
+  username: string
+  isHost: boolean
+  isAlive: boolean
+  score: number
+}
+
+export interface Room {
+  code: string
+  players: Player[]
+  currentPlayerIndex: number
+  currentLetter: string
+  gameStarted: boolean
+  gameOver: boolean
+  winner: Player | null
+  usedWords: string[]
+}
+
+export interface WordValidationResult {
+  valid: boolean
+  word: string
+  meaning?: string
+  phonetic?: string
+}
+
+export interface GameState {
+  room: Room
+  timeLeft: number
+}

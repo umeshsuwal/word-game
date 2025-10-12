@@ -1,103 +1,188 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { socket } from "@/lib/socket";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react"
+import { useRouter, useParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { PlayerAvatar } from "@/components/ui/avatar"
+import { getSocket } from "@/lib/socket"
+import { Copy, Crown } from "lucide-react"
+import { toast } from "sonner"
+import type { Room } from "@/types/game"
 
-export default function WaitingLobby() {
-  const { roomCode } = useParams();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const name = searchParams.get("name") ?? "";
-  const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
-  const [hostId, setHostId] = useState<string | null>(null);
-  const [myId, setMyId] = useState<string | null>(null);
-  const [gameStarted, setGameStarted] = useState(false);
+export default function LobbyPage() {
+  const router = useRouter()
+  const params = useParams()
+  const roomCode = params.roomCode as string
+
+  const [room, setRoom] = useState<Room | null>(null)
+  const [currentPlayerId, setCurrentPlayerId] = useState<string>("")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!socket) return;
-    socket.emit("join_room", { name, roomCode }); // ensure rejoin if refreshed
+    const socket = getSocket()
 
-    // Handler that deduplicates users by id before updating state
-    const handleUpdateUsers = (payload: { users: { id: string; name: string }[]; hostId?: string }) => {
-      if (!payload || !Array.isArray(payload.users)) return;
-      const incoming = payload.users;
-      const seen = new Set<string>();
-      const deduped = incoming.filter((u) => {
-        if (!u || typeof u.id !== "string") return false;
-        if (seen.has(u.id)) return false;
-        seen.add(u.id);
-        return true;
-      });
-      setUsers(deduped);
-      setHostId(payload.hostId ?? null);
-    };
+    // Wait for socket connection before setting player ID
+    const handleConnect = () => {
+      setCurrentPlayerId(socket.id || "")
+      // Request current room state once connected
+      socket.emit("get-room", { roomCode })
+    }
 
-    socket.on("update_users", handleUpdateUsers);
-    socket.on("error_message", (msg: string) => alert(msg));
-    socket.on("game_started", ({ roomCode: rc }) => {
-      if (rc === roomCode) {
-        setGameStarted(true);
-        router.push(`/game/${roomCode}`);
-      }
-    });
+    // If already connected, set immediately
+    if (socket.connected) {
+      setCurrentPlayerId(socket.id || "")
+      socket.emit("get-room", { roomCode })
+    } else {
+      // Wait for connection
+      socket.on("connect", handleConnect)
+    }
 
-    // set my socket id
-    setMyId(socket.id ?? null);
+    // Listen for room updates
+    socket.on("room-updated", ({ room: updatedRoom }: { room: Room }) => {
+      console.log("Room updated:", updatedRoom)
+      setRoom(updatedRoom)
+      setLoading(false)
+    })
+
+    // Listen for room errors
+    socket.on("room-error", ({ message }: { message: string }) => {
+      console.error("Room error:", message)
+      setLoading(false)
+      toast.error("Room Error", {
+        description: message,
+      })
+    })
+
+    // Listen for game start
+    socket.on("game-started", ({ room: startedRoom }: { room: Room }) => {
+      console.log("Game started, redirecting to game room")
+      router.push(`/game/${roomCode}`)
+    })
+
     return () => {
-      if (!socket) return;
-      socket.off("update_users", handleUpdateUsers);
-      socket.off("error_message");
-      socket.off("game_started");
-    };
-  }, [name, roomCode]);
+      socket.off("connect", handleConnect)
+      socket.off("room-updated")
+      socket.off("room-error")
+      socket.off("game-started")
+    }
+  }, [roomCode, router])
+
+  const handleStartGame = () => {
+    if (!room) return
+
+    if (room.players.length < 2) {
+      toast("Not enough players", {
+        description: "You need at least 2 players to start the game",
+      })
+      return
+    }
+
+    const socket = getSocket()
+    socket.emit("start-game", { roomCode })
+  }
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(roomCode)
+    toast("Room code copied!", {
+      description: "Share this code with your friends to join",
+    })
+  }
+
+  const isHost = room?.players.find((p) => p.id === currentPlayerId)?.isHost
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <p className="text-muted-foreground">Loading lobby...</p>
+      </div>
+    )
+  }
+
+  if (!room) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Room not found</CardTitle>
+            <CardDescription>This room doesn't exist or has been closed</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" onClick={() => router.push("/")}>
+              Back to Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-indigo-50 to-white">
-      <div className="bg-white shadow-xl rounded-2xl p-8 flex flex-col items-center gap-6 w-96">
-        <h1 className="text-2xl font-bold text-gray-800">Room: {roomCode}</h1>
-        <h2 className="text-lg text-gray-600">Players Joined</h2>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Waiting Lobby</CardTitle>
+            <CardDescription>Share the room code with your friends</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-center gap-3">
+              <div className="text-3xl font-bold tracking-wider">
+                {roomCode}
+              </div>
+              <Button variant="outline" size="icon" onClick={handleCopyCode}>
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
 
-        <ul className="w-full border rounded-lg overflow-hidden">
-          {users.map((u) => (
-            <li
-              key={u.id}
-              className="border-b last:border-b-0 text-center py-2 text-gray-700"
-            >
-              {u.name}
-            </li>
-          ))}
-        </ul>
+            {/* Players List */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Players ({room.players.length})</span>
+                <Badge variant="secondary">{room.players.length < 2 ? "Waiting..." : "Ready"}</Badge>
+              </div>
+              <div className="space-y-2">
+                {room.players.map((player) => (
+                  <div
+                    key={player.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <PlayerAvatar username={player.username} size={40} />
+                      <div>
+                        <p className="font-medium">{player.username}</p>
+                        {player.id === currentPlayerId && <p className="text-xs text-muted-foreground">You</p>}
+                      </div>
+                    </div>
+                    {player.isHost && (
+                      <Badge variant="default" className="gap-1">
+                        <Crown className="w-3 h-3" />
+                        Host
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
 
-        <p className="text-sm text-gray-400">
-          Share this code with friends: <span className="font-semibold">{roomCode}</span>
-        </p>
+            {/* Start Game Button (Host Only) */}
+            {isHost && (
+              <Button onClick={handleStartGame} size="lg" className="w-full">
+                Start Game
+              </Button>
+            )}
 
-        <div className="w-full flex flex-col items-center gap-2">
-          {gameStarted ? (
-            <p className="text-green-600 font-semibold">Game started!</p>
-          ) : hostId && myId && hostId === myId ? (
-            <button
-              className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-              onClick={() => {
-                if (!socket) return;
-                socket.emit("start_game", { roomCode });
-              }}
-            >
-              Start Game
-            </button>
-          ) : (
-            <p className="text-gray-500">Waiting for host to start...</p>
-          )}
+            {!isHost && (
+              <p className="text-center text-sm text-muted-foreground">Waiting for host to start the game...</p>
+            )}
 
-          <button
-            className="mt-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-            onClick={() => router.push("/")}
-          >
-            Leave Room
-          </button>
-        </div>
+            <Button variant="outline" className="w-full bg-transparent" size="lg" onClick={() => router.push("/")}>
+              Back
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
-  );
+  )
 }

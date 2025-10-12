@@ -1,62 +1,103 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { socket } from "@/lib/socket";
-import { useRouter } from "next/navigation";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { getSocket } from "@/lib/socket"
+import type { Room } from "@/types/game"
 
-export default function JoinRoom() {
-  const [name, setName] = useState("");
-  const [roomCode, setRoomCode] = useState("");
-  const router = useRouter();
+export default function JoinGamePage() {
+  const router = useRouter()
+  const [username, setUsername] = useState("")
+  const [roomCode, setRoomCode] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  useEffect(() => {
-    if (!socket) return;
-    socket.on("error_message", (msg) => alert(msg));
-    socket.on("update_users", () => {
-      router.push(`/waitingLobby/${roomCode}?name=${encodeURIComponent(name)}`);
-    });
-    return () => {
-      if (!socket) return;
-      socket.off("error_message");
-      socket.off("update_users");
-    };
-  }, [name, roomCode]);
+  const handleJoinRoom = () => {
+    if (!username.trim()) {
+      setError("Please enter a username")
+      return
+    }
 
-  const handleJoin = () => {
-    if (!name.trim() || !roomCode.trim()) return alert("Enter both name and room code");
-    if (!socket) return alert("Socket not initialized");
-    socket.emit("join_room", { name, roomCode });
-  };
+    if (!roomCode.trim()) {
+      setError("Please enter a room code")
+      return
+    }
+
+    setLoading(true)
+    setError("")
+
+    const socket = getSocket()
+
+    socket.emit("join-room", {
+      roomCode: roomCode.trim().toUpperCase(),
+      username: username.trim(),
+    })
+
+    socket.once("room-updated", ({ room }: { room: Room }) => {
+      router.push(`/waitingLobby/${room.code}`)
+    })
+
+    socket.once("join-error", ({ message }: { message: string }) => {
+      setError(message)
+      setLoading(false)
+    })
+
+    // Timeout fallback
+    setTimeout(() => {
+      if (loading) {
+        setError("Failed to join room. Please check the room code.")
+        setLoading(false)
+      }
+    }, 5000)
+  }
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-green-50 to-white">
-      <div className="bg-white shadow-lg rounded-xl p-8 flex flex-col gap-4 w-80">
-        <h1 className="text-2xl font-semibold text-center text-gray-700">Join a Room</h1>
-        <input
-          className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-          placeholder="Enter your name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          className="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-          placeholder="Room code (e.g. ABC123)"
-          value={roomCode}
-          onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-        />
-        <button
-          className="bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition"
-          onClick={handleJoin}
-        >
-          Join Room
-        </button>
-        <button
-          onClick={() => router.push("/")}
-          className="text-gray-500 hover:text-gray-700 text-sm mt-2"
-        >
-          Back
-        </button>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Join Game</CardTitle>
+            <CardDescription>Enter the room code to join an existing game</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                maxLength={20}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="roomCode">Room Code</Label>
+              <Input
+                id="roomCode"
+                placeholder="Enter 6-character code"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                maxLength={6}
+              />
+            </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <Button onClick={handleJoinRoom} disabled={loading} className="w-full" size="lg">
+              {loading ? "Joining..." : "Join Room"}
+            </Button>
+
+            <Button variant="outline" className="w-full bg-transparent" size="lg" onClick={() => router.push("/")}>
+              Back
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
-  );
+  )
 }
