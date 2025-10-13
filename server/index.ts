@@ -1,12 +1,14 @@
 import { createServer } from "http"
 import { Server } from "socket.io"
+import { networkInterfaces } from "os"
 import { GameLogic } from "@/lib/gameLogic"
 
 const httpServer = createServer()
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    origin: "*", // Allow all origins (for local network access)
     methods: ["GET", "POST"],
+    credentials: true,
   },
 })
 
@@ -14,7 +16,7 @@ const gameLogic = new GameLogic()
 const turnTimers: Map<string, NodeJS.Timeout> = new Map()
 
 io.on("connection", (socket) => {
-  console.log("[v0] User connected:", socket.id)
+  console.log("User connected:", socket.id)
 
   socket.on("create-room", ({ username, customCode }) => {
     const roomCode = customCode || gameLogic.generateRoomCode()
@@ -22,7 +24,7 @@ io.on("connection", (socket) => {
 
     socket.join(roomCode)
     socket.emit("room-created", { roomCode, room })
-    console.log("[v0] Room created:", roomCode)
+    console.log("Room created:", roomCode)
   })
 
   socket.on("join-room", ({ roomCode, username }) => {
@@ -35,7 +37,7 @@ io.on("connection", (socket) => {
 
     socket.join(roomCode)
     io.to(roomCode).emit("room-updated", { room })
-    console.log("[v0] Player joined room:", roomCode, username)
+    console.log("Player joined room:", roomCode, username)
   })
 
   socket.on("get-room", ({ roomCode }) => {
@@ -49,7 +51,7 @@ io.on("connection", (socket) => {
     // Ensure socket is in the room
     socket.join(roomCode)
     socket.emit("room-updated", { room })
-    console.log("[v0] Room state requested:", roomCode)
+    console.log("Room state requested:", roomCode)
   })
 
   socket.on("start-game", ({ roomCode }) => {
@@ -62,7 +64,7 @@ io.on("connection", (socket) => {
 
     io.to(roomCode).emit("game-started", { room })
     startTurnTimer(roomCode)
-    console.log("[v0] Game started:", roomCode)
+    console.log("Game started:", roomCode)
   })
 
   socket.on("submit-word", async ({ roomCode, word }) => {
@@ -94,32 +96,47 @@ io.on("connection", (socket) => {
         }
       }, 6000) // Show meaning for 6 seconds
     } else {
-      // Invalid word - eliminate player
-      gameLogic.eliminatePlayer(roomCode, socket.id)
-      const player = room.players.find((p) => p.id === socket.id)
+      // Invalid word - player loses a life
+      const eliminationResult = gameLogic.eliminatePlayer(roomCode, socket.id)
+      
+      if (eliminationResult) {
+        const player = eliminationResult.room.players.find((p) => p.id === socket.id)
+        const livesLeft = eliminationResult.livesLeft
 
-      io.to(roomCode).emit("player-eliminated", {
-        player,
-        reason: "Invalid word",
-      })
+        // Emit word error with reason
+        io.to(roomCode).emit("word-error", {
+          player,
+          word: result.word,
+          reason: result.reason || "Invalid word",
+          livesLeft,
+        })
 
-      clearTurnTimer(roomCode)
-      setTimeout(() => {
-        const updatedRoom = gameLogic.nextTurn(roomCode)
-        if (updatedRoom) {
-          if (updatedRoom.gameOver) {
-            io.to(roomCode).emit("game-over", { room: updatedRoom })
-          } else {
-            io.to(roomCode).emit("next-turn", { room: updatedRoom })
-            startTurnTimer(roomCode)
-          }
+        // If player is eliminated (no lives left), emit elimination event
+        if (livesLeft <= 0 && player) {
+          io.to(roomCode).emit("player-eliminated", {
+            player,
+            reason: "No lives remaining",
+          })
         }
-      }, 3000)
+
+        clearTurnTimer(roomCode)
+        setTimeout(() => {
+          const updatedRoom = gameLogic.nextTurn(roomCode)
+          if (updatedRoom) {
+            if (updatedRoom.gameOver) {
+              io.to(roomCode).emit("game-over", { room: updatedRoom })
+            } else {
+              io.to(roomCode).emit("next-turn", { room: updatedRoom })
+              startTurnTimer(roomCode)
+            }
+          }
+        }, 3000)
+      }
     }
   })
 
   socket.on("disconnect", () => {
-    console.log("[v0] User disconnected:", socket.id)
+    console.log("User disconnected:", socket.id)
 
     // Find and remove player from all rooms
     // In production, you'd track socket-to-room mapping
@@ -133,12 +150,27 @@ io.on("connection", (socket) => {
       if (!room || room.gameOver) return
 
       const currentPlayer = room.players[room.currentPlayerIndex]
-      gameLogic.eliminatePlayer(roomCode, currentPlayer.id)
+      const eliminationResult = gameLogic.eliminatePlayer(roomCode, currentPlayer.id)
 
-      io.to(roomCode).emit("player-eliminated", {
-        player: currentPlayer,
-        reason: "Time out",
-      })
+      if (eliminationResult) {
+        const livesLeft = eliminationResult.livesLeft
+
+        // Emit timeout error
+        io.to(roomCode).emit("word-error", {
+          player: currentPlayer,
+          word: "",
+          reason: "Time out",
+          livesLeft,
+        })
+
+        // If player is eliminated (no lives left), emit elimination event
+        if (livesLeft <= 0) {
+          io.to(roomCode).emit("player-eliminated", {
+            player: currentPlayer,
+            reason: "No lives remaining",
+          })
+        }
+      }
 
       setTimeout(() => {
         const updatedRoom = gameLogic.nextTurn(roomCode)
@@ -166,6 +198,24 @@ io.on("connection", (socket) => {
 })
 
 const PORT = process.env.PORT || 3001
-httpServer.listen(PORT, () => {
-  console.log(`Socket.io server running on port ${PORT}`)
+
+httpServer.listen(Number(PORT), "0.0.0.0", () => {
+  console.log(`Socket.io server running on:`)
+  console.log(`   - Local:   http://localhost:${PORT}`)
+  
+  // Try to get and display the actual network IP
+  const nets = networkInterfaces()
+  
+  for (const name of Object.keys(nets)) {
+    const netInterface = nets[name]
+    if (!netInterface) continue
+    
+    for (const net of netInterface) {
+      // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
+      if (net.family === "IPv4" && !net.internal) {
+        console.log(`   - Network: http://${net.address}:${PORT}`)
+      }
+    }
+  }
+  console.log()
 })
