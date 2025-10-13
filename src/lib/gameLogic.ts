@@ -51,6 +51,7 @@ export class GameLogic {
       gameOver: false,
       winner: null,
       usedWords: [],
+      lastWord: null,
     }
     this.rooms.set(roomCode, room)
     return room
@@ -125,8 +126,8 @@ export class GameLogic {
       return { valid: false, word }
     }
 
-    // Check if word contains the required letter
-    if (!normalizedWord.includes(room.currentLetter.toLowerCase())) {
+    // Check if word starts with the required letter
+    if (!normalizedWord.startsWith(room.currentLetter.toLowerCase())) {
       return { valid: false, word }
     }
 
@@ -147,8 +148,9 @@ export class GameLogic {
       const meaning = data[0]?.meanings?.[0]?.definitions?.[0]?.definition || "No definition available"
       const phonetic = data[0]?.phonetic || ""
 
-      // Word is valid
+      // Word is valid - store it as the last word
       room.usedWords.push(normalizedWord)
+      room.lastWord = normalizedWord
       currentPlayer.score += normalizedWord.length
 
       return {
@@ -192,7 +194,13 @@ export class GameLogic {
       room.currentPlayerIndex = (room.currentPlayerIndex + 1) % room.players.length
     } while (!room.players[room.currentPlayerIndex].isAlive)
 
-    room.currentLetter = this.generateRandomLetter()
+    // Set next letter: if there's a last word, use its last letter; otherwise generate random
+    if (room.lastWord) {
+      room.currentLetter = room.lastWord.charAt(room.lastWord.length - 1).toUpperCase()
+    } else {
+      room.currentLetter = this.generateRandomLetter()
+    }
+    
     return room
   }
 

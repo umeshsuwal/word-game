@@ -15,6 +15,7 @@ export interface Room {
   gameOver: boolean
   winner: Player | null
   usedWords: string[]
+  lastWord: string | null
 }
 
 export interface WordValidationResult {
