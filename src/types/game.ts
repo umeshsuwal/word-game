@@ -4,6 +4,7 @@ export interface Player {
   isHost: boolean
   isAlive: boolean
   score: number
+  lives: number
 }
 
 export interface Room {
@@ -23,6 +24,7 @@ export interface WordValidationResult {
   word: string
   meaning?: string
   phonetic?: string
+  reason?: string
 }
 
 export interface GameState {

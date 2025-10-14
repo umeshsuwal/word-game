@@ -1,7 +1,7 @@
 import { createServer } from "http"
 import { Server } from "socket.io"
 import { networkInterfaces } from "os"
-import { GameLogic } from "@/lib/gameLogic"
+import { GameLogic } from "../src/lib/gameLogic.js"
 
 const httpServer = createServer()
 const io = new Server(httpServer, {

@@ -43,6 +43,7 @@ export class GameLogic {
           isHost: true,
           isAlive: true,
           score: 0,
+          lives: 3,
         },
       ],
       currentPlayerIndex: 0,
@@ -71,6 +72,7 @@ export class GameLogic {
       isHost: false,
       isAlive: true,
       score: 0,
+      lives: 3,
     }
     room.players.push(player)
     return room
@@ -115,7 +117,7 @@ export class GameLogic {
   async validateWord(roomCode: string, word: string, playerId: string): Promise<WordValidationResult> {
     const room = this.rooms.get(roomCode)
     if (!room) {
-      return { valid: false, word }
+      return { valid: false, word, reason: "Room not found" }
     }
 
     const normalizedWord = word.toLowerCase().trim()
@@ -123,17 +125,25 @@ export class GameLogic {
 
     // Check if it's the player's turn
     if (currentPlayer.id !== playerId) {
-      return { valid: false, word }
+      return { valid: false, word, reason: "Not your turn" }
     }
 
     // Check if word starts with the required letter
     if (!normalizedWord.startsWith(room.currentLetter.toLowerCase())) {
-      return { valid: false, word }
+      return { 
+        valid: false, 
+        word, 
+        reason: `Word must start with "${room.currentLetter}"` 
+      }
     }
 
     // Check if word was already used
     if (room.usedWords.includes(normalizedWord)) {
-      return { valid: false, word }
+      return { 
+        valid: false, 
+        word, 
+        reason: "This word has already been used" 
+      }
     }
 
     // Validate with dictionary API
@@ -141,7 +151,11 @@ export class GameLogic {
       const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${normalizedWord}`)
 
       if (!response.ok) {
-        return { valid: false, word }
+        return { 
+          valid: false, 
+          word, 
+          reason: "Word not found in dictionary" 
+        }
       }
 
       const data = await response.json()
@@ -160,20 +174,31 @@ export class GameLogic {
         phonetic,
       }
     } catch (error) {
-      return { valid: false, word }
+      return { 
+        valid: false, 
+        word, 
+        reason: "Failed to validate word" 
+      }
     }
   }
 
-  eliminatePlayer(roomCode: string, playerId: string): Room | null {
+  eliminatePlayer(roomCode: string, playerId: string): { room: Room; livesLeft: number } | null {
     const room = this.rooms.get(roomCode)
     if (!room) return null
 
     const player = room.players.find((p) => p.id === playerId)
     if (player) {
-      player.isAlive = false
+      player.lives -= 1
+      
+      // Only mark as dead when lives reach 0
+      if (player.lives <= 0) {
+        player.isAlive = false
+      }
+      
+      return { room, livesLeft: player.lives }
     }
 
-    return room
+    return null
   }
 
   nextTurn(roomCode: string): Room | null {
