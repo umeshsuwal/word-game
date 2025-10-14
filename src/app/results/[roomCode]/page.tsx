@@ -1,23 +1,99 @@
-"use client";
+"use client"
 
-import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { getSocket } from "@/lib/socket"
+import { Home } from "lucide-react"
+import type { Room } from "@/types/game"
+import { WinnerCard } from "@/components/results/WinnerCard"
+import { Leaderboard } from "@/components/results/Leaderboard"
 
 export default function ResultPage() {
-  const { roomCode } = useParams();
-  const router = useRouter();
+  const { roomCode } = useParams()
+  const router = useRouter()
+  const [room, setRoom] = useState<Room | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // placeholder: you can fetch game state here or initialize client-side game logic
-    if (!roomCode) router.push("/");
-  }, [roomCode, router]);
+    const socket = getSocket()
+
+    // Request room state
+    const handleConnect = () => {
+      socket.emit("get-room", { roomCode })
+    }
+
+    if (socket.connected) {
+      socket.emit("get-room", { roomCode })
+    } else {
+      socket.on("connect", handleConnect)
+    }
+
+    socket.on("room-updated", ({ room: updatedRoom }: { room: Room }) => {
+      console.log("Results - Room data:", updatedRoom)
+      setRoom(updatedRoom)
+      setLoading(false)
+    })
+
+    socket.on("room-error", () => {
+      setLoading(false)
+    })
+
+    return () => {
+      socket.off("connect", handleConnect)
+      socket.off("room-updated")
+      socket.off("room-error")
+    }
+  }, [roomCode])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <p className="text-muted-foreground">Loading results...</p>
+      </div>
+    )
+  }
+
+  if (!room) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="py-6 space-y-4">
+            <p className="text-center text-muted-foreground">Room not found</p>
+            <Button className="w-full" onClick={() => router.push("/")}>
+              Back to Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Sort players by score
+  const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score)
+  const winner = room.winner || sortedPlayers[0]
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-50">
-      <div className="bg-white shadow-md rounded-lg p-8">
-        <h1 className="text-2xl font-bold">Result {roomCode}</h1>
-        <p className="text-sm text-gray-500 mt-2">Game content goes here.</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl space-y-6">
+        {/* Winner Card */}
+        <WinnerCard winner={winner} />
+
+        {/* Leaderboard */}
+        <Leaderboard players={room.players} roomCode={roomCode as string} />
+
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <Button onClick={() => router.push("/")} size="lg" className="flex-1 gap-2">
+            <Home className="w-5 h-5" />
+            Home
+          </Button>
+          <Button onClick={() => router.push("/create")} variant="outline" size="lg" className="flex-1">
+            Play Again
+          </Button>
+        </div>
       </div>
     </div>
-  );
+  )
 }

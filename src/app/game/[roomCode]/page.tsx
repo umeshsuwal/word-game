@@ -5,15 +5,17 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { PlayerAvatar } from "@/components/ui/avatar"
 import { getSocket } from "@/lib/socket"
 import { toast } from "sonner"
-import { Volume2, Trophy } from "lucide-react"
 import type { Room, Player } from "@/types/game"
+import { GameHeader } from "@/components/game/GameHeader"
+import { CurrentLetterDisplay } from "@/components/game/CurrentLetterDisplay"
+import { WordMeaningDisplay } from "@/components/game/WordMeaningDisplay"
+import { UsedWordsList } from "@/components/game/UsedWordsList"
+import { WordInputForm } from "@/components/game/WordInputForm"
+import { PlayersList } from "@/components/game/PlayersList"
 
 export default function GameRoomPage() {
   const router = useRouter()
@@ -94,16 +96,27 @@ export default function GameRoomPage() {
           window.speechSynthesis.speak(utterance)
         }
 
-        toast(`${player.username} scored!`, {
+        toast.success(`${player.username} scored!`, {
           description: `"${word}" is valid! +${word.length} points`,
         })
       }
     })
 
+    // Listen for word errors
+    socket.on("word-error", ({ player, word, reason, livesLeft }: any) => {
+      const isMe = player.id === socket.id
+      
+      toast.error(`${isMe ? "Your" : player.username + "'s"} word "${word}" is invalid!`, {
+        description: `${reason}. ${livesLeft > 0 ? `${livesLeft} life/lives remaining` : "Eliminated!"}`,
+        duration: 3000,
+      })
+    })
+
     // Listen for player elimination
     socket.on("player-eliminated", ({ player, reason }: { player: Player; reason: string }) => {
-      toast(`${player.username} eliminated!`, {
+      toast.error(`${player.username} eliminated!`, {
         description: reason,
+        duration: 3000,
       })
     })
 
@@ -119,6 +132,7 @@ export default function GameRoomPage() {
       socket.off("room-error")
       socket.off("next-turn")
       socket.off("word-result")
+      socket.off("word-error")
       socket.off("player-eliminated")
       socket.off("game-over")
     }
@@ -211,139 +225,44 @@ export default function GameRoomPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
       <div className="container mx-auto max-w-4xl py-8 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Room: {roomCode}</h1>
-            <p className="text-sm text-muted-foreground">{alivePlayers.length} players remaining</p>
-          </div>
-          <Badge variant="secondary" className="text-lg px-4 py-2">
-            {timeLeft}s
-          </Badge>
-        </div>
+        <GameHeader roomCode={roomCode} alivePlayers={alivePlayers.length} timeLeft={timeLeft} />
 
         {/* Timer Progress */}
         <Progress value={progressPercentage} className="h-2" />
 
         {/* Current Letter Display */}
-        <Card className="border-4 border-primary">
-          <CardContent className="py-12">
-            <div className="text-center space-y-4">
-              <p className="text-lg text-muted-foreground">
-                {room.lastWord ? `Last word: "${room.lastWord}" - Start with` : "Current Letter"}
-              </p>
-              <div className="text-8xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {room.currentLetter}
-              </div>
-              <p className="text-xl font-medium">{isMyTurn ? "Your turn!" : `${currentPlayer?.username}'s turn`}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <CurrentLetterDisplay
+          currentLetter={room.currentLetter}
+          lastWord={room.lastWord}
+          currentPlayerName={currentPlayer?.username || ""}
+          isMyTurn={isMyTurn}
+        />
 
         {/* Word Meaning Display */}
         {showMeaning && currentMeaning && (
-          <Card className="border-2 border-green-500 bg-green-50 dark:bg-green-950">
-            <CardContent className="py-6 space-y-2">
-              <div className="flex items-center gap-2 justify-center">
-                <h3 className="text-2xl font-bold text-green-700 dark:text-green-300">{currentMeaning.word}</h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    if ("speechSynthesis" in window) {
-                      const utterance = new SpeechSynthesisUtterance(currentMeaning.word)
-                      utterance.rate = 0.8
-                      window.speechSynthesis.speak(utterance)
-                    }
-                  }}
-                >
-                  <Volume2 className="w-5 h-5" />
-                </Button>
-              </div>
-              {currentMeaning.phonetic && (
-                <p className="text-center text-sm text-muted-foreground">{currentMeaning.phonetic}</p>
-              )}
-              <p className="text-center text-green-800 dark:text-green-200">{currentMeaning.meaning}</p>
-            </CardContent>
-          </Card>
+          <WordMeaningDisplay
+            word={currentMeaning.word}
+            meaning={currentMeaning.meaning}
+            phonetic={currentMeaning.phonetic}
+          />
         )}
 
         {/* Used Words List */}
-        {room.usedWords.length > 0 && (
-          <Card>
-            <CardContent className="py-4">
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-muted-foreground">Words Used ({room.usedWords.length}):</h3>
-                <div className="flex flex-wrap gap-2">
-                  {room.usedWords.map((word, index) => (
-                    <Badge key={index} variant="secondary" className="text-sm">
-                      {word}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <UsedWordsList usedWords={room.usedWords} />
 
         {/* Word Input (only for current player) */}
         {isMyTurn && !showMeaning && (
-          <Card>
-            <CardContent className="py-6 space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  placeholder={`Type a word starting with "${room.currentLetter}"...`}
-                  value={wordInput}
-                  onChange={(e) => setWordInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  className="text-lg"
-                  autoFocus
-                />
-                <Button onClick={handleSubmitWord} size="lg">
-                  Submit
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground text-center">
-                Word must start with <span className="font-bold text-foreground">{room.currentLetter}</span>. Press Enter to submit.
-              </p>
-            </CardContent>
-          </Card>
+          <WordInputForm
+            currentLetter={room.currentLetter}
+            wordInput={wordInput}
+            onWordInputChange={setWordInput}
+            onSubmit={handleSubmitWord}
+            onKeyPress={handleKeyPress}
+          />
         )}
 
         {/* Players List */}
-        <Card>
-          <CardContent className="py-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {room.players.map((player) => (
-                <div
-                  key={player.id}
-                  className={`flex items-center gap-2 p-3 rounded-lg transition-all ${
-                    player.isAlive
-                      ? player.id === currentPlayer?.id
-                        ? "bg-blue-100 dark:bg-blue-900 ring-2 ring-blue-500"
-                        : "bg-muted/50"
-                      : "bg-destructive/10 opacity-50"
-                  }`}
-                >
-                  <div className="relative">
-                    <PlayerAvatar username={player.username} size={32} />
-                    {!player.isAlive && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-                        <span className="text-white text-xs font-bold">✕</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{player.username}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Trophy className="w-3 h-3" />
-                      <span>{player.score}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <PlayersList players={room.players} currentPlayerId={currentPlayer?.id || ""} />
       </div>
     </div>
   )
