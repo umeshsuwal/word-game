@@ -28,6 +28,7 @@ const CONSONANTS = [
 
 export class GameLogic {
   private rooms: Map<string, Room> = new Map()
+  private playerRoomMap: Map<string, { roomCode: string; username: string }> = new Map()
 
   generateRoomCode(): string {
     return Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -55,6 +56,7 @@ export class GameLogic {
       lastWord: null,
     }
     this.rooms.set(roomCode, room)
+    this.playerRoomMap.set(hostId, { roomCode, username: hostUsername })
     return room
   }
 
@@ -75,6 +77,7 @@ export class GameLogic {
       lives: 3,
     }
     room.players.push(player)
+    this.playerRoomMap.set(playerId, { roomCode, username })
     return room
   }
 
@@ -83,6 +86,7 @@ export class GameLogic {
     if (!room) return null
 
     room.players = room.players.filter((p) => p.id !== playerId)
+    this.playerRoomMap.delete(playerId)
 
     // If host left, assign new host
     if (room.players.length > 0 && !room.players.some((p) => p.isHost)) {
@@ -231,5 +235,39 @@ export class GameLogic {
 
   getTurnTime(): number {
     return TURN_TIME
+  }
+
+  // Get player's last room for reconnection
+  getPlayerLastRoom(oldPlayerId: string): { roomCode: string; username: string } | null {
+    return this.playerRoomMap.get(oldPlayerId) || null
+  }
+
+  // Rejoin a room after disconnection
+  rejoinRoom(roomCode: string, oldPlayerId: string, newSocketId: string): Room | null {
+    const room = this.rooms.get(roomCode)
+    if (!room) return null
+
+    // Find the player by their old ID
+    const playerIndex = room.players.findIndex((p) => p.id === oldPlayerId)
+    if (playerIndex === -1) return null
+
+    // Update player's socket ID
+    const player = room.players[playerIndex]
+    const oldId = player.id
+    player.id = newSocketId
+
+    // Update the player room map with new socket ID
+    const playerInfo = this.playerRoomMap.get(oldId)
+    if (playerInfo) {
+      this.playerRoomMap.delete(oldId)
+      this.playerRoomMap.set(newSocketId, playerInfo)
+    }
+
+    return room
+  }
+
+  // Check if a player was in a room (for reconnection detection)
+  wasPlayerInRoom(playerId: string): boolean {
+    return this.playerRoomMap.has(playerId)
   }
 }

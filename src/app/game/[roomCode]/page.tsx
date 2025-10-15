@@ -7,7 +7,7 @@ import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { getSocket } from "@/lib/socket"
+import { getSocket, getStoredSocketId } from "@/lib/socket"
 import { toast } from "sonner"
 import type { Room, Player } from "@/types/game"
 import { GameHeader } from "@/components/game/GameHeader"
@@ -36,22 +36,93 @@ export default function GameRoomPage() {
 
   useEffect(() => {
     const socket = getSocket()
+    const oldSocketId = getStoredSocketId()
 
     // Wait for socket connection before setting player ID
     const handleConnect = () => {
       setCurrentPlayerId(socket.id || "")
-      // Request current room state once connected
-      socket.emit("get-room", { roomCode })
+      
+      // Check if this is a reconnection
+      if (oldSocketId && oldSocketId !== socket.id) {
+        socket.emit("check-reconnection", { oldSocketId })
+        
+        // Listen for reconnection availability
+        socket.once("reconnection-available", ({ roomCode: reconnectRoomCode }) => {
+          if (reconnectRoomCode === roomCode) {
+            // Attempt to rejoin the room
+            socket.emit("rejoin-room", { roomCode, oldSocketId })
+            toast.info("Reconnecting to game...")
+          } else {
+            // Not the same room, proceed normally
+            socket.emit("get-room", { roomCode })
+          }
+        })
+        
+        // If no reconnection available, proceed normally
+        setTimeout(() => {
+          socket.emit("get-room", { roomCode })
+        }, 1000)
+      } else {
+        // Normal connection - request room state
+        socket.emit("get-room", { roomCode })
+      }
     }
 
     // If already connected, set immediately
     if (socket.connected) {
       setCurrentPlayerId(socket.id || "")
-      socket.emit("get-room", { roomCode })
+      const oldSocketId = getStoredSocketId()
+      
+      if (oldSocketId && oldSocketId !== socket.id) {
+        socket.emit("check-reconnection", { oldSocketId })
+        
+        socket.once("reconnection-available", ({ roomCode: reconnectRoomCode }) => {
+          if (reconnectRoomCode === roomCode) {
+            socket.emit("rejoin-room", { roomCode, oldSocketId })
+            toast.info("Reconnecting to game...")
+          } else {
+            socket.emit("get-room", { roomCode })
+          }
+        })
+        
+        setTimeout(() => {
+          socket.emit("get-room", { roomCode })
+        }, 1000)
+      } else {
+        socket.emit("get-room", { roomCode })
+      }
     } else {
       // Wait for connection
       socket.on("connect", handleConnect)
     }
+
+    // Listen for successful reconnection
+    socket.on("rejoined-room", ({ room: reconnectedRoom }: { room: Room }) => {
+      console.log("[v0] Successfully rejoined room:", reconnectedRoom)
+      setRoom(reconnectedRoom)
+      setLoading(false)
+      setCurrentPlayerId(socket.id || "")
+      toast.success("Reconnected to game!")
+      
+      if (reconnectedRoom.gameStarted) {
+        setTimeLeft(30)
+      }
+    })
+
+    // Listen for other players reconnecting
+    socket.on("player-reconnected", ({ username }: { playerId: string; username: string }) => {
+      toast.info(`${username} reconnected`)
+    })
+
+    // Listen for players disconnecting
+    socket.on("player-disconnected", ({ username }: { playerId: string; username: string }) => {
+      toast.warning(`${username} disconnected`)
+    })
+
+    // Listen for players being removed
+    socket.on("player-removed", ({ username, reason }: { username: string; reason: string }) => {
+      toast.error(`${username} removed: ${reason}`)
+    })
 
     // Listen for room updates (initial state)
     socket.on("room-updated", ({ room: updatedRoom }: { room: Room }) => {
@@ -135,6 +206,10 @@ export default function GameRoomPage() {
       socket.off("word-error")
       socket.off("player-eliminated")
       socket.off("game-over")
+      socket.off("rejoined-room")
+      socket.off("player-reconnected")
+      socket.off("player-disconnected")
+      socket.off("player-removed")
     }
   }, [roomCode, router])
 

@@ -19,8 +19,47 @@ const socketRoomMap: Map<string, string> = new Map() // Track socket to room map
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id)
 
-  socket.on("create-room", ({ username, customCode }) => {
-    const roomCode = customCode || gameLogic.generateRoomCode()
+  // Check for reconnection
+  socket.on("check-reconnection", ({ oldSocketId }) => {
+    if (oldSocketId && gameLogic.wasPlayerInRoom(oldSocketId)) {
+      const playerInfo = gameLogic.getPlayerLastRoom(oldSocketId)
+      if (playerInfo) {
+        socket.emit("reconnection-available", {
+          roomCode: playerInfo.roomCode,
+          username: playerInfo.username,
+        })
+        console.log("Reconnection available for:", oldSocketId, "->", socket.id)
+      }
+    }
+  })
+
+  // Handle reconnection to a room
+  socket.on("rejoin-room", ({ roomCode, oldSocketId }) => {
+    const room = gameLogic.rejoinRoom(roomCode, oldSocketId, socket.id)
+
+    if (!room) {
+      socket.emit("rejoin-error", { message: "Unable to rejoin room" })
+      return
+    }
+
+    socket.join(roomCode)
+    socketRoomMap.set(socket.id, roomCode)
+    socketRoomMap.delete(oldSocketId) // Clean up old socket mapping
+    
+    // Notify the rejoined player
+    socket.emit("rejoined-room", { room })
+    
+    // Notify other players in the room
+    socket.to(roomCode).emit("player-reconnected", {
+      playerId: socket.id,
+      username: room.players.find((p) => p.id === socket.id)?.username,
+    })
+    
+    console.log("Player rejoined room:", roomCode, socket.id)
+  })
+
+  socket.on("create-room", ({ username }) => {
+    const roomCode = gameLogic.generateRoomCode()
     const room = gameLogic.createRoom(roomCode, socket.id, username)
 
     socket.join(roomCode)
@@ -145,20 +184,61 @@ io.on("connection", (socket) => {
     const roomCode = socketRoomMap.get(socket.id)
     
     if (roomCode) {
-      // Remove player from the room
-      const room = gameLogic.removePlayer(roomCode, socket.id)
+      const room = gameLogic.getRoom(roomCode)
       
       if (room) {
-        // If room still exists, notify remaining players
-        io.to(roomCode).emit("room-updated", { room })
-        console.log("Player removed from room:", roomCode, "Remaining players:", room.players.length)
-      } else {
-        // Room was deleted (no players left)
-        console.log("Room deleted (empty):", roomCode)
+        // If game hasn't started, remove player immediately
+        if (!room.gameStarted) {
+          const updatedRoom = gameLogic.removePlayer(roomCode, socket.id)
+          
+          if (updatedRoom) {
+            io.to(roomCode).emit("room-updated", { room: updatedRoom })
+            console.log("Player removed from lobby:", roomCode)
+          } else {
+            console.log("Room deleted (empty):", roomCode)
+          }
+          
+          socketRoomMap.delete(socket.id)
+        } else {
+          // Game is in progress - notify players and wait for reconnection
+          const player = room.players.find((p) => p.id === socket.id)
+          
+          if (player) {
+            io.to(roomCode).emit("player-disconnected", {
+              playerId: socket.id,
+              username: player.username,
+            })
+            
+            console.log("Player disconnected during game:", socket.id, "Room:", roomCode)
+            
+            // Set a timeout to remove player after 60 seconds if they don't reconnect
+            setTimeout(() => {
+              // Check if player has reconnected (socket ID changed)
+              const currentRoom = gameLogic.getRoom(roomCode)
+              if (currentRoom) {
+                const stillDisconnected = currentRoom.players.some((p) => p.id === socket.id)
+                
+                if (stillDisconnected) {
+                  const finalRoom = gameLogic.removePlayer(roomCode, socket.id)
+                  
+                  if (finalRoom) {
+                    io.to(roomCode).emit("room-updated", { room: finalRoom })
+                    io.to(roomCode).emit("player-removed", {
+                      username: player.username,
+                      reason: "Failed to reconnect",
+                    })
+                    console.log("Player permanently removed after timeout:", socket.id)
+                  } else {
+                    console.log("Room deleted (empty):", roomCode)
+                  }
+                  
+                  socketRoomMap.delete(socket.id)
+                }
+              }
+            }, 60000) // 60 second timeout
+          }
+        }
       }
-      
-      // Clean up the socket-room mapping
-      socketRoomMap.delete(socket.id)
     }
   })
 
