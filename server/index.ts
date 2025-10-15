@@ -14,6 +14,7 @@ const io = new Server(httpServer, {
 
 const gameLogic = new GameLogic()
 const turnTimers: Map<string, NodeJS.Timeout> = new Map()
+const socketRoomMap: Map<string, string> = new Map() // Track socket to room mapping
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id)
@@ -23,6 +24,7 @@ io.on("connection", (socket) => {
     const room = gameLogic.createRoom(roomCode, socket.id, username)
 
     socket.join(roomCode)
+    socketRoomMap.set(socket.id, roomCode) // Track socket to room
     socket.emit("room-created", { roomCode, room })
     console.log("Room created:", roomCode)
   })
@@ -36,6 +38,7 @@ io.on("connection", (socket) => {
     }
 
     socket.join(roomCode)
+    socketRoomMap.set(socket.id, roomCode) // Track socket to room
     io.to(roomCode).emit("room-updated", { room })
     console.log("Player joined room:", roomCode, username)
   })
@@ -138,8 +141,25 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id)
 
-    // Find and remove player from all rooms
-    // In production, you'd track socket-to-room mapping
+    // Get the room code for this socket
+    const roomCode = socketRoomMap.get(socket.id)
+    
+    if (roomCode) {
+      // Remove player from the room
+      const room = gameLogic.removePlayer(roomCode, socket.id)
+      
+      if (room) {
+        // If room still exists, notify remaining players
+        io.to(roomCode).emit("room-updated", { room })
+        console.log("Player removed from room:", roomCode, "Remaining players:", room.players.length)
+      } else {
+        // Room was deleted (no players left)
+        console.log("Room deleted (empty):", roomCode)
+      }
+      
+      // Clean up the socket-room mapping
+      socketRoomMap.delete(socket.id)
+    }
   })
 
   function startTurnTimer(roomCode: string) {

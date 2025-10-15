@@ -42,6 +42,19 @@ export default function LobbyPage() {
     // Listen for room updates
     socket.on("room-updated", ({ room: updatedRoom }: { room: Room }) => {
       console.log("Room updated:", updatedRoom)
+      
+      // Check if number of players decreased (someone disconnected)
+      if (room && updatedRoom.players.length < room.players.length) {
+        const disconnectedPlayer = room.players.find(
+          p => !updatedRoom.players.some(up => up.id === p.id)
+        )
+        if (disconnectedPlayer) {
+          toast("Player left", {
+            description: `${disconnectedPlayer.username} has disconnected`,
+          })
+        }
+      }
+      
       setRoom(updatedRoom)
       setLoading(false)
     })
