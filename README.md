@@ -244,5 +244,5 @@ If you have any questions or run into issues:
 
 ## Live Demo
 
-Play the game: [Your Deployed URL]
+Play the game: (https://word-bomb-game.vercel.app/)]
 
