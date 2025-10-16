@@ -1,3 +1,4 @@
+import "dotenv/config"
 import { createServer } from "http"
 import { Server } from "socket.io"
 import { networkInterfaces } from "os"
@@ -12,7 +13,16 @@ const io = new Server(httpServer, {
   },
 })
 
-const gameLogic = new GameLogic()
+// Initialize GameLogic with Firebase enabled
+const useFirebase = process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? true : false
+const gameLogic = new GameLogic(useFirebase)
+
+if (useFirebase) {
+  console.log("🔥 Firebase integration enabled")
+} else {
+  console.log("💾 Using in-memory storage (Firebase disabled)")
+}
+
 const turnTimers: Map<string, NodeJS.Timeout> = new Map()
 const socketRoomMap: Map<string, string> = new Map() // Track socket to room mapping
 
@@ -58,9 +68,9 @@ io.on("connection", (socket) => {
     console.log("Player rejoined room:", roomCode, socket.id)
   })
 
-  socket.on("create-room", ({ username }) => {
+  socket.on("create-room", async ({ username }) => {
     const roomCode = gameLogic.generateRoomCode()
-    const room = gameLogic.createRoom(roomCode, socket.id, username)
+    const room = await gameLogic.createRoom(roomCode, socket.id, username)
 
     socket.join(roomCode)
     socketRoomMap.set(socket.id, roomCode) // Track socket to room
@@ -68,8 +78,8 @@ io.on("connection", (socket) => {
     console.log("Room created:", roomCode)
   })
 
-  socket.on("join-room", ({ roomCode, username }) => {
-    const room = gameLogic.joinRoom(roomCode, socket.id, username)
+  socket.on("join-room", async ({ roomCode, username }) => {
+    const room = await gameLogic.joinRoom(roomCode, socket.id, username)
 
     if (!room) {
       socket.emit("join-error", { message: "Room not found or game already started" })
@@ -96,8 +106,8 @@ io.on("connection", (socket) => {
     console.log("Room state requested:", roomCode)
   })
 
-  socket.on("start-game", ({ roomCode }) => {
-    const room = gameLogic.startGame(roomCode)
+  socket.on("start-game", async ({ roomCode }) => {
+    const room = await gameLogic.startGame(roomCode)
 
     if (!room) {
       socket.emit("start-error", { message: "Cannot start game" })
@@ -126,8 +136,8 @@ io.on("connection", (socket) => {
 
       // Clear timer and move to next turn
       clearTurnTimer(roomCode)
-      setTimeout(() => {
-        const updatedRoom = gameLogic.nextTurn(roomCode)
+      setTimeout(async () => {
+        const updatedRoom = await gameLogic.nextTurn(roomCode)
         if (updatedRoom) {
           if (updatedRoom.gameOver) {
             io.to(roomCode).emit("game-over", { room: updatedRoom })
@@ -139,7 +149,7 @@ io.on("connection", (socket) => {
       }, 6000) // Show meaning for 6 seconds
     } else {
       // Invalid word - player loses a life
-      const eliminationResult = gameLogic.eliminatePlayer(roomCode, socket.id)
+      const eliminationResult = await gameLogic.eliminatePlayer(roomCode, socket.id)
       
       if (eliminationResult) {
         const player = eliminationResult.room.players.find((p) => p.id === socket.id)
@@ -162,8 +172,8 @@ io.on("connection", (socket) => {
         }
 
         clearTurnTimer(roomCode)
-        setTimeout(() => {
-          const updatedRoom = gameLogic.nextTurn(roomCode)
+        setTimeout(async () => {
+          const updatedRoom = await gameLogic.nextTurn(roomCode)
           if (updatedRoom) {
             if (updatedRoom.gameOver) {
               io.to(roomCode).emit("game-over", { room: updatedRoom })
@@ -177,7 +187,7 @@ io.on("connection", (socket) => {
     }
   })
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     console.log("User disconnected:", socket.id)
 
     // Get the room code for this socket
@@ -189,7 +199,7 @@ io.on("connection", (socket) => {
       if (room) {
         // If game hasn't started, remove player immediately
         if (!room.gameStarted) {
-          const updatedRoom = gameLogic.removePlayer(roomCode, socket.id)
+          const updatedRoom = await gameLogic.removePlayer(roomCode, socket.id)
           
           if (updatedRoom) {
             io.to(roomCode).emit("room-updated", { room: updatedRoom })
@@ -212,14 +222,14 @@ io.on("connection", (socket) => {
             console.log("Player disconnected during game:", socket.id, "Room:", roomCode)
             
             // Set a timeout to remove player after 60 seconds if they don't reconnect
-            setTimeout(() => {
+            setTimeout(async () => {
               // Check if player has reconnected (socket ID changed)
               const currentRoom = gameLogic.getRoom(roomCode)
               if (currentRoom) {
                 const stillDisconnected = currentRoom.players.some((p) => p.id === socket.id)
                 
                 if (stillDisconnected) {
-                  const finalRoom = gameLogic.removePlayer(roomCode, socket.id)
+                  const finalRoom = await gameLogic.removePlayer(roomCode, socket.id)
                   
                   if (finalRoom) {
                     io.to(roomCode).emit("room-updated", { room: finalRoom })
@@ -242,15 +252,15 @@ io.on("connection", (socket) => {
     }
   })
 
-  function startTurnTimer(roomCode: string) {
+  async function startTurnTimer(roomCode: string) {
     clearTurnTimer(roomCode)
 
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       const room = gameLogic.getRoom(roomCode)
       if (!room || room.gameOver) return
 
       const currentPlayer = room.players[room.currentPlayerIndex]
-      const eliminationResult = gameLogic.eliminatePlayer(roomCode, currentPlayer.id)
+      const eliminationResult = await gameLogic.eliminatePlayer(roomCode, currentPlayer.id)
 
       if (eliminationResult) {
         const livesLeft = eliminationResult.livesLeft
@@ -272,8 +282,8 @@ io.on("connection", (socket) => {
         }
       }
 
-      setTimeout(() => {
-        const updatedRoom = gameLogic.nextTurn(roomCode)
+      setTimeout(async () => {
+        const updatedRoom = await gameLogic.nextTurn(roomCode)
         if (updatedRoom) {
           if (updatedRoom.gameOver) {
             io.to(roomCode).emit("game-over", { room: updatedRoom })

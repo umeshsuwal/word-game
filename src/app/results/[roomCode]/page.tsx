@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { getSocket } from "@/lib/socket"
+import { useAuth } from "@/contexts/AuthContext"
+import { HistoryService } from "@/lib/historyService"
 import { Home } from "lucide-react"
 import type { Room } from "@/types/game"
 import { WinnerCard } from "@/components/results/WinnerCard"
@@ -13,8 +15,10 @@ import { Leaderboard } from "@/components/results/Leaderboard"
 export default function ResultPage() {
   const { roomCode } = useParams()
   const router = useRouter()
+  const { user } = useAuth()
   const [room, setRoom] = useState<Room | null>(null)
   const [loading, setLoading] = useState(true)
+  const [historySaved, setHistorySaved] = useState(false)
 
   useEffect(() => {
     const socket = getSocket()
@@ -46,6 +50,43 @@ export default function ResultPage() {
       socket.off("room-error")
     }
   }, [roomCode])
+
+  // Save game history when room data is loaded and user is authenticated
+  useEffect(() => {
+    if (!room || !user || historySaved) return
+
+    const saveHistory = async () => {
+      try {
+        const socket = getSocket()
+        const currentPlayer = room.players.find((p) => p.id === socket.id)
+        
+        if (!currentPlayer) return
+
+        // Sort players to determine rank
+        const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score)
+        const rank = sortedPlayers.findIndex((p) => p.id === currentPlayer.id) + 1
+        const isWinner = rank === 1
+
+        await HistoryService.saveGameHistory(user.uid, {
+          roomCode: room.code,
+          playerName: currentPlayer.username,
+          playerEmail: user.email,
+          score: currentPlayer.score,
+          rank,
+          isWinner,
+          wordsUsed: room.usedWords, // All words used in the game
+          totalPlayers: room.players.length,
+        })
+
+        setHistorySaved(true)
+        console.log("Game history saved successfully")
+      } catch (error) {
+        console.error("Failed to save game history:", error)
+      }
+    }
+
+    saveHistory()
+  }, [room, user, historySaved])
 
   if (loading) {
     return (

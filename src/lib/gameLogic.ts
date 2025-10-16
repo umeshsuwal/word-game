@@ -29,12 +29,33 @@ const CONSONANTS = [
 export class GameLogic {
   private rooms: Map<string, Room> = new Map()
   private playerRoomMap: Map<string, { roomCode: string; username: string }> = new Map()
+  private useFirebase: boolean = false
+  private firebaseDb: any = null
+
+  constructor(useFirebase: boolean = false) {
+    this.useFirebase = useFirebase
+    if (useFirebase) {
+      // Dynamically import Firebase Admin only on server
+      this.initializeFirebase()
+    }
+  }
+
+  private async initializeFirebase() {
+    try {
+      const { getAdminDb } = await import("../../server/firebase-admin.js")
+      this.firebaseDb = getAdminDb()
+      console.log("Firebase initialized for game logic")
+    } catch (error) {
+      console.error("Failed to initialize Firebase:", error)
+      this.useFirebase = false
+    }
+  }
 
   generateRoomCode(): string {
     return Math.random().toString(36).substring(2, 8).toUpperCase()
   }
 
-  createRoom(roomCode: string, hostId: string, hostUsername: string): Room {
+  async createRoom(roomCode: string, hostId: string, hostUsername: string): Promise<Room> {
     const room: Room = {
       code: roomCode,
       players: [
@@ -57,6 +78,20 @@ export class GameLogic {
     }
     this.rooms.set(roomCode, room)
     this.playerRoomMap.set(hostId, { roomCode, username: hostUsername })
+
+    // Save to Firebase
+    if (this.useFirebase && this.firebaseDb) {
+      try {
+        await this.firebaseDb.collection("rooms").doc(roomCode).set({
+          ...room,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      } catch (error) {
+        console.error("Error saving room to Firebase:", error)
+      }
+    }
+
     return room
   }
 
@@ -64,7 +99,7 @@ export class GameLogic {
     return this.rooms.get(roomCode)
   }
 
-  joinRoom(roomCode: string, playerId: string, username: string): Room | null {
+  async joinRoom(roomCode: string, playerId: string, username: string): Promise<Room | null> {
     const room = this.rooms.get(roomCode)
     if (!room || room.gameStarted) return null
 
@@ -78,10 +113,23 @@ export class GameLogic {
     }
     room.players.push(player)
     this.playerRoomMap.set(playerId, { roomCode, username })
+
+    // Update Firebase
+    if (this.useFirebase && this.firebaseDb) {
+      try {
+        await this.firebaseDb.collection("rooms").doc(roomCode).update({
+          players: room.players,
+          updatedAt: new Date(),
+        })
+      } catch (error) {
+        console.error("Error updating room in Firebase:", error)
+      }
+    }
+
     return room
   }
 
-  removePlayer(roomCode: string, playerId: string): Room | null {
+  async removePlayer(roomCode: string, playerId: string): Promise<Room | null> {
     const room = this.rooms.get(roomCode)
     if (!room) return null
 
@@ -96,19 +144,56 @@ export class GameLogic {
     // Delete room if empty
     if (room.players.length === 0) {
       this.rooms.delete(roomCode)
+      
+      // Delete from Firebase
+      if (this.useFirebase && this.firebaseDb) {
+        try {
+          await this.firebaseDb.collection("rooms").doc(roomCode).delete()
+        } catch (error) {
+          console.error("Error deleting room from Firebase:", error)
+        }
+      }
+      
       return null
+    }
+
+    // Update Firebase
+    if (this.useFirebase && this.firebaseDb) {
+      try {
+        await this.firebaseDb.collection("rooms").doc(roomCode).update({
+          players: room.players,
+          updatedAt: new Date(),
+        })
+      } catch (error) {
+        console.error("Error updating room in Firebase:", error)
+      }
     }
 
     return room
   }
 
-  startGame(roomCode: string): Room | null {
+  async startGame(roomCode: string): Promise<Room | null> {
     const room = this.rooms.get(roomCode)
     if (!room || room.players.length < 2) return null
 
     room.gameStarted = true
     room.currentPlayerIndex = 0
     room.currentLetter = this.generateRandomLetter()
+
+    // Update Firebase
+    if (this.useFirebase && this.firebaseDb) {
+      try {
+        await this.firebaseDb.collection("rooms").doc(roomCode).update({
+          gameStarted: true,
+          currentPlayerIndex: room.currentPlayerIndex,
+          currentLetter: room.currentLetter,
+          updatedAt: new Date(),
+        })
+      } catch (error) {
+        console.error("Error updating game start in Firebase:", error)
+      }
+    }
+
     return room
   }
 
@@ -171,6 +256,20 @@ export class GameLogic {
       room.lastWord = normalizedWord
       currentPlayer.score += normalizedWord.length
 
+      // Save used word to Firebase
+      if (this.useFirebase && this.firebaseDb) {
+        try {
+          await this.firebaseDb.collection("rooms").doc(roomCode).update({
+            usedWords: room.usedWords,
+            lastWord: room.lastWord,
+            players: room.players,
+            updatedAt: new Date(),
+          })
+        } catch (error) {
+          console.error("Error saving used word to Firebase:", error)
+        }
+      }
+
       return {
         valid: true,
         word: normalizedWord,
@@ -186,7 +285,7 @@ export class GameLogic {
     }
   }
 
-  eliminatePlayer(roomCode: string, playerId: string): { room: Room; livesLeft: number } | null {
+  async eliminatePlayer(roomCode: string, playerId: string): Promise<{ room: Room; livesLeft: number } | null> {
     const room = this.rooms.get(roomCode)
     if (!room) return null
 
@@ -198,6 +297,18 @@ export class GameLogic {
       if (player.lives <= 0) {
         player.isAlive = false
       }
+
+      // Update Firebase
+      if (this.useFirebase && this.firebaseDb) {
+        try {
+          await this.firebaseDb.collection("rooms").doc(roomCode).update({
+            players: room.players,
+            updatedAt: new Date(),
+          })
+        } catch (error) {
+          console.error("Error updating player elimination in Firebase:", error)
+        }
+      }
       
       return { room, livesLeft: player.lives }
     }
@@ -205,7 +316,7 @@ export class GameLogic {
     return null
   }
 
-  nextTurn(roomCode: string): Room | null {
+  async nextTurn(roomCode: string): Promise<Room | null> {
     const room = this.rooms.get(roomCode)
     if (!room) return null
 
@@ -215,6 +326,20 @@ export class GameLogic {
     if (alivePlayers.length <= 1) {
       room.gameOver = true
       room.winner = alivePlayers[0] || room.players.sort((a, b) => b.score - a.score)[0]
+      
+      // Update Firebase
+      if (this.useFirebase && this.firebaseDb) {
+        try {
+          await this.firebaseDb.collection("rooms").doc(roomCode).update({
+            gameOver: true,
+            winner: room.winner,
+            updatedAt: new Date(),
+          })
+        } catch (error) {
+          console.error("Error updating game over in Firebase:", error)
+        }
+      }
+      
       return room
     }
 
@@ -228,6 +353,19 @@ export class GameLogic {
       room.currentLetter = room.lastWord.charAt(room.lastWord.length - 1).toUpperCase()
     } else {
       room.currentLetter = this.generateRandomLetter()
+    }
+
+    // Update Firebase
+    if (this.useFirebase && this.firebaseDb) {
+      try {
+        await this.firebaseDb.collection("rooms").doc(roomCode).update({
+          currentPlayerIndex: room.currentPlayerIndex,
+          currentLetter: room.currentLetter,
+          updatedAt: new Date(),
+        })
+      } catch (error) {
+        console.error("Error updating next turn in Firebase:", error)
+      }
     }
     
     return room
