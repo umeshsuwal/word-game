@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { getSocket, getStoredSocketId } from "@/lib/socket"
+import { useAuth } from "@/contexts/AuthContext"
+import { HistoryService } from "@/lib/historyService"
 import { toast } from "sonner"
 import type { Room, Player } from "@/types/game"
 import { GameHeader } from "@/components/game/GameHeader"
@@ -21,6 +23,7 @@ export default function GameRoomPage() {
   const router = useRouter()
   const params = useParams()
   const roomCode = params.roomCode as string
+  const { user } = useAuth()
 
   const [room, setRoom] = useState<Room | null>(null)
   const [currentPlayerId, setCurrentPlayerId] = useState<string>("")
@@ -159,6 +162,19 @@ export default function GameRoomPage() {
       if (success) {
         setCurrentMeaning({ word, meaning, phonetic })
         setShowMeaning(true)
+
+        // Save word history for authenticated users
+        if (user && player.id === socket.id) {
+          HistoryService.saveWordHistory(user.uid, {
+            word,
+            meaning,
+            userName: player.username,
+            roomCode,
+            score: word.length,
+          }).catch((error) => {
+            console.error("Failed to save word history:", error)
+          })
+        }
 
         // Pronounce the word
         if ("speechSynthesis" in window && phonetic) {

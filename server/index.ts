@@ -18,9 +18,9 @@ const useFirebase = process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? true : false
 const gameLogic = new GameLogic(useFirebase)
 
 if (useFirebase) {
-  console.log("🔥 Firebase integration enabled")
+  console.log(" Firebase integration enabled")
 } else {
-  console.log("💾 Using in-memory storage (Firebase disabled)")
+  console.log(" Using in-memory storage (Firebase disabled)")
 }
 
 const turnTimers: Map<string, NodeJS.Timeout> = new Map()
@@ -321,7 +321,6 @@ httpServer.listen(Number(PORT), "0.0.0.0", () => {
     if (!netInterface) continue
     
     for (const net of netInterface) {
-      // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
       if (net.family === "IPv4" && !net.internal) {
         console.log(`   - Network: http://${net.address}:${PORT}`)
       }

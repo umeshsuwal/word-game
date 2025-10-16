@@ -125,8 +125,6 @@ export class HistoryService {
   static async getUserWordHistory(userId: string, limitCount: number = 100): Promise<WordHistory[]> {
     try {
       const wordRef = collection(db, "wordHistory")
-      // Simplified query without orderBy to avoid composite index requirement
-      // Data will be sorted client-side
       const q = query(
         wordRef,
         where("usedBy", "==", userId),

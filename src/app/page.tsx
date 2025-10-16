@@ -1,38 +1,33 @@
-"use client";
+"use client"
 
-import { useRouter } from "next/navigation";
+import { useState } from "react"
+import { useAuth } from "@/contexts/AuthContext"
+import { AuthForm } from "@/components/auth/AuthForm"
+import { UserProfileBar } from "@/components/home/UserProfileBar"
+import { MainMenuCard } from "@/components/home/MainMenuCard"
 
 export default function HomePage() {
-  const router = useRouter();
+  const { user, logout } = useAuth()
+  const [showAuth, setShowAuth] = useState(false)
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-      <div className="bg-white shadow-md rounded-2xl p-10 flex flex-col gap-6 items-center">
-        <h1 className="text-4xl font-bold text-gray-800 text-center">
-          Real-Time Room App
-        </h1>
-        <p className="text-gray-500 text-center max-w-md">
-          Create a new room or join an existing one to collaborate in real-time.
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-4">
+        {user && (
+          <UserProfileBar user={user} onLogout={logout} />
+        )}
 
-        <div className="flex gap-4 mt-4">
-          <button
-            onClick={() => router.push("/create")}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow transition"
-          >
-            Create Room
-          </button>
-          <button
-            onClick={() => router.push("/join")}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow transition"
-          >
-            Join Room
-          </button>
-        </div>
+        {showAuth && !user ? (
+          <div className="animate-in fade-in duration-300">
+            <AuthForm onSuccess={() => setShowAuth(false)} />
+          </div>
+        ) : (
+          <MainMenuCard 
+            showSignInPrompt={!user}
+            onSignInClick={() => setShowAuth(true)}
+          />
+        )}
       </div>
-      <footer className="absolute bottom-6 text-sm text-gray-400">
-        Built with Next.js + Socket.IO
-      </footer>
     </div>
-  );
+  )
 }
