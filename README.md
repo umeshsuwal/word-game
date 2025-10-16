@@ -63,6 +63,7 @@ A real-time multiplayer word chain game where players create words starting with
 
    ```
    bash
+
    npm install  
    ```
 
@@ -102,8 +103,6 @@ A real-time multiplayer word chain game where players create words starting with
    # Terminal 1 - Next.js app
 
    npm run dev
-
-
 
    # Terminal 2 - Socket.io server   
 
@@ -214,15 +213,6 @@ npm run lint         # Run ESLint
 
 - GitHub: [@umeshsuwal](https://github.com/umeshsuwal)
 
-
-   - First letter is randomly generated (40% vowel, 60% consonant)
-
-   **Taking Your Turn**
-   - You have 30 seconds to submit a word
-   - Word must start with the current letter
-   - Word must be a valid English word (verified via dictionary)
-   - Word cannot have been used already in the game
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -233,7 +223,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License.
 
@@ -252,7 +242,7 @@ If you have any questions or run into issues:
 2. Create a new issue with details
 3. Contact: [mail@umeshsuwal.com.np]
 
-## 🎮 Live Demo
+## Live Demo
 
 Play the game: [Your Deployed URL]
 
