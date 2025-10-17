@@ -2,7 +2,7 @@
 
 
 
-A real-time multiplayer word chain game where players create words starting with the last letter of the previous word. Challenge your friends and test your vocabulary!A real-time multiplayer word chain game where players create words starting with the last letter of the previous word. Challenge your friends and test your vocabulary!
+A real-time multiplayer word chain game where players create words starting with the last letter of the previous word. Challenge your friends and test your vocabulary!
 
 
 
