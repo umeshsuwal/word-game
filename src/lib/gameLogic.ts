@@ -235,9 +235,53 @@ export class GameLogic {
       }
     }
 
-    // Validate with dictionary API
+    // Validate with dictionary API - Using multiple APIs for faster response
     try {
-      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${normalizedWord}`)
+      // First, try Datamuse API (faster, more reliable)
+      const dataumuseResponse = await fetch(
+        `https://api.datamuse.com/words?sp=${normalizedWord}&md=d&max=1`,
+        { signal: AbortSignal.timeout(3000) } // 3 second timeout
+      )
+
+      if (dataumuseResponse.ok) {
+        const datamuseData = await dataumuseResponse.json()
+        
+        if (datamuseData.length > 0 && datamuseData[0].word.toLowerCase() === normalizedWord) {
+          const meaning = datamuseData[0].defs?.[0]?.replace(/^\w+\t/, "") || "Valid English word"
+          
+          // Word is valid - store it as the last word
+          room.usedWords.push(normalizedWord)
+          room.lastWord = normalizedWord
+          currentPlayer.score += normalizedWord.length
+
+          // Save used word to Firebase
+          if (this.useFirebase && this.firebaseDb) {
+            try {
+              await this.firebaseDb.collection("rooms").doc(roomCode).update({
+                usedWords: room.usedWords,
+                lastWord: room.lastWord,
+                players: room.players,
+                updatedAt: new Date(),
+              })
+            } catch (error) {
+              console.error("Error saving used word to Firebase:", error)
+            }
+          }
+
+          return {
+            valid: true,
+            word: normalizedWord,
+            meaning,
+            phonetic: "",
+          }
+        }
+      }
+
+      // Fallback to original dictionary API (with timeout)
+      const response = await fetch(
+        `https://api.dictionaryapi.dev/api/v2/entries/en/${normalizedWord}`,
+        { signal: AbortSignal.timeout(3000) } // 3 second timeout
+      )
 
       if (!response.ok) {
         return { 
@@ -280,7 +324,7 @@ export class GameLogic {
       return { 
         valid: false, 
         word, 
-        reason: "Failed to validate word" 
+        reason: "Failed to validate word (timeout or network error)" 
       }
     }
   }
