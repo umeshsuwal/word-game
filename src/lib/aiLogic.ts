@@ -38,79 +38,16 @@ export interface AIWordChoice {
   confidence: number
 }
 
-// Separate word lists by difficulty
-const EASY_WORDS: Record<string, string[]> = {
-  A: ["ant", "arm", "apple", "able", "area"],
-  B: ["bat", "bag", "box", "ball", "baby", "bird", "book"],
-  C: ["cat", "car", "cup", "cake", "cold", "come", "call"],
-  D: ["dog", "dad", "door", "dark", "day", "draw"],
-  E: ["egg", "ear", "east", "easy", "even"],
-  F: ["fox", "fan", "face", "fast", "feel", "fire", "fish"],
-  G: ["get", "got", "game", "girl", "give", "good", "gold"],
-  H: ["hat", "hot", "hand", "hear", "help", "high", "home"],
-  I: ["ice", "idea", "into"],
-  J: ["jam", "jump", "just"],
-  K: ["key", "king", "keep", "kind"],
-  L: ["leg", "lot", "left", "life", "like", "line", "live", "long", "look"],
-  M: ["man", "map", "may", "make", "moon", "more", "move"],
-  N: ["new", "near", "need", "next", "name", "nice"],
-  O: ["old", "own", "open", "once"],
-  P: ["pet", "pen", "pig", "put", "page", "park", "part", "play"],
-  Q: ["quit", "quick", "queen"],
-  R: ["rat", "ran", "real", "read", "rich", "road", "rock", "room", "rule"],
-  S: ["sun", "sad", "see", "say", "show", "side", "size", "some", "stop"],
-  T: ["tea", "top", "two", "take", "tell", "than", "that", "them", "time", "tree", "true", "turn"],
-  U: ["use", "used", "upon"],
-  V: ["very", "view", "visit"],
-  W: ["way", "war", "was", "wave", "week", "well", "went", "west", "what", "when", "wind", "with", "word", "work"],
-  X: ["x-ray"],
-  Y: ["yes", "year", "yet", "your"],
-  Z: ["zoo", "zero", "zone"],
-}
-
-const MEDIUM_WORDS: Record<string, string[]> = {
-  A: ["actor", "admit", "adopt", "adult", "after", "again", "agent", "agree", "ahead", "album", "allow", "alone", "along", "among", "angry", "apple", "apply", "argue", "arise", "array", "aside", "asset", "avoid", "await", "award", "aware"],
-  B: ["basic", "beach", "begin", "being", "below", "bench", "birth", "black", "blame", "blank", "blind", "block", "blood", "board", "bound", "brain", "brand", "brave", "bread", "break", "breed", "brief", "bring", "broad", "brown", "build", "buyer"],
-  C: ["cable", "carry", "catch", "cause", "chain", "chair", "chart", "chase", "cheap", "check", "chest", "chief", "child", "china", "claim", "class", "clean", "clear", "click", "climb", "clock", "close", "coach", "coast", "count", "court", "cover", "craft", "crash", "crazy", "cream", "crime", "cross", "crowd", "crown", "cycle"],
-  D: ["daily", "dance", "death", "debug", "delay", "depth", "dirty", "doubt", "dozen", "draft", "drama", "drank", "drawn", "dream", "dress", "drill", "drink", "drive", "drove"],
-  E: ["eager", "early", "earth", "eight", "elite", "empty", "enemy", "enjoy", "enter", "entry", "equal", "error", "event", "every", "exact", "exist"],
-  F: ["faith", "false", "fault", "fence", "field", "fifth", "fifty", "fight", "final", "first", "fixed", "flash", "fleet", "floor", "fluid", "focus", "force", "forth", "forum", "found", "frame", "frank", "fraud", "fresh", "front", "fruit", "fully"],
-  G: ["giant", "given", "glass", "globe", "glory", "grace", "grade", "grain", "grand", "grant", "graph", "grass", "grave", "great", "green", "greet", "gross", "group", "grown", "guard", "guess", "guest", "guide", "guild"],
-  H: ["happy", "harry", "heart", "heavy", "hello", "henry", "horse", "hotel", "house", "human", "humor"],
-  I: ["ideal", "image", "imply", "index", "inner", "input", "issue"],
-  J: ["japan", "jimmy", "joint", "jones", "judge", "juice"],
-  K: ["kevin", "knife"],
-  L: ["label", "labor", "large", "laser", "later", "laugh", "layer", "learn", "least", "leave", "legal", "level", "lewis", "light", "limit", "links", "local", "logic", "loose", "lower", "lucky", "lunch"],
-  M: ["magic", "major", "maker", "march", "maria", "match", "mayor", "meant", "media", "meet", "metal", "meter", "might", "minor", "minus", "mixed", "model", "money", "month", "moral", "mount", "mouse", "mouth", "moved", "movie", "music"],
-  N: ["nancy", "narrow", "nation", "nature", "nearby", "nearly", "night", "ninth", "noble", "noise", "north", "noted", "novel", "nurse"],
-  O: ["occur", "ocean", "offer", "often", "order", "organ", "other", "ought", "outer", "owned", "owner"],
-  P: ["paint", "panel", "panic", "paper", "party", "patch", "peace", "peter", "phase", "phone", "photo", "piano", "piece", "pilot", "pitch", "place", "plain", "plane", "plant", "plate", "plaza", "point", "pool", "pound", "power", "press", "price", "pride", "prime", "print", "prior", "prize", "proof", "proud", "prove", "queen", "query", "quest", "quick", "quiet", "quite", "quote"],
-  Q: ["queen", "query", "quest", "quick", "quiet", "quite", "quote"],
-  R: ["radio", "raise", "range", "rapid", "ratio", "reach", "react", "ready", "realm", "refer", "relax", "reply", "rider", "ridge", "rifle", "right", "rigid", "river", "roger", "roman", "rough", "round", "route", "royal", "rugby", "rural"],
-  S: ["scale", "scene", "scope", "score", "sense", "serve", "seven", "shall", "shape", "share", "sharp", "sheet", "shelf", "shell", "shift", "shine", "shirt", "shock", "shoot", "shore", "short", "shown", "sight", "simon", "since", "sixth", "sixty", "sized", "skill", "sleep", "slide", "smart", "smith", "smoke", "snake", "solid", "solve", "sorry", "sound", "south", "space", "spare", "speak", "speed", "spend", "spent", "split", "spoke", "sport", "squad", "staff", "stage", "stake", "stand", "start", "state", "steam", "steel", "steep", "stick", "still", "stock", "stone", "stood", "store", "storm", "story", "strip", "stuck", "study", "stuff", "style", "sugar", "suite", "super", "surge", "sweet", "swift", "swing", "sword"],
-  T: ["table", "taken", "taste", "taxes", "teach", "terry", "texas", "thank", "theft", "their", "theme", "there", "these", "thick", "thing", "think", "third", "those", "three", "threw", "throw", "thumb", "tiger", "tight", "timer", "title", "today", "tommy", "topic", "total", "touch", "tough", "tower", "track", "trade", "train", "trait", "trash", "treat", "trend", "trial", "tribe", "trick", "tried", "tries", "truck", "truly", "trump", "trust", "truth", "twelve", "twenty", "twice", "under"],
-  U: ["ultra", "uncle", "under", "undue", "union", "unity", "until", "upper", "upset", "urban", "usage", "usual"],
-  V: ["valid", "value", "video", "virus", "visit", "vital", "vocal", "voice", "voter"],
-  W: ["waste", "watch", "water", "wayne", "wheel", "where", "which", "while", "white", "whole", "whose", "woman", "women", "world", "worry", "worse", "worst", "worth", "would", "wound", "write", "wrong", "wrote"],
-  X: ["x-ray", "xerox"],
-  Y: ["yacht", "yield", "young", "yours", "youth"],
-  Z: ["zero"],
-}
-
-const HARD_WORDS = WORD_DICTIONARY // Use the full dictionary for hard mode
-const EXPERT_WORDS = WORD_DICTIONARY // Expert uses the full dictionary
-
 export class AIPlayer {
-  private difficulty: "easy" | "medium" | "hard" | "expert"
   private usedWords: Set<string>
 
-  constructor(difficulty: "easy" | "medium" | "hard" | "expert" = "medium") {
-    this.difficulty = difficulty
+  constructor() {
     this.usedWords = new Set()
   }
 
   /**
    * Generate a word for the AI based on the current letter and used words
+   * Uses expert-level strategy with minimal mistakes
    */
   async generateWord(
     currentLetter: string,
@@ -126,57 +63,18 @@ export class AIPlayer {
       return null // No words available
     }
 
-    // Simulate thinking delay
+    // Simulate thinking delay (500ms - 1500ms)
     await this.thinkingDelay()
 
-    let selectedWord: string
-    let confidence: number
-
-    switch (this.difficulty) {
-      case "easy":
-        // Easy AI: 20-30% mistake rate, simple 3-5 letter words, slow response (3-6s)
-        const easyMistakeRate = 0.20 + Math.random() * 0.10 // 20-30% (reduced from 40-50%)
-        if (Math.random() < easyMistakeRate) {
-          return this.makeIntentionalMistake(currentLetter)
-        }
-        selectedWord = this.pickRandomWord(availableWords)
-        confidence = 0.5
-        break
-
-      case "medium":
-        // Medium AI: 10-15% mistake rate, 5-7 letter words, moderate response (2-4s)
-        const mediumMistakeRate = 0.10 + Math.random() * 0.05 // 10-15% (reduced from 15-25%)
-        if (Math.random() < mediumMistakeRate) {
-          return this.makeIntentionalMistake(currentLetter)
-        }
-        selectedWord = this.pickRandomWord(availableWords)
-        confidence = 0.75
-        break
-
-      case "hard":
-        // Hard AI: 3-8% mistake rate, advanced vocabulary, fast response (1-2s)
-        const hardMistakeRate = 0.03 + Math.random() * 0.05 // 3-8% (slightly reduced from 5-10%)
-        if (Math.random() < hardMistakeRate) {
-          return this.makeIntentionalMistake(currentLetter)
-        }
-        selectedWord = this.pickStrategicWord(availableWords, lives)
-        confidence = 0.92
-        break
-
-      case "expert":
-        // Expert AI: 0-1% mistake rate, extremely precise, very fast response (0.5-1.5s)
-        const expertMistakeRate = Math.random() * 0.01 // 0-1% (reduced from 0-2%)
-        if (Math.random() < expertMistakeRate) {
-          return this.makeIntentionalMistake(currentLetter)
-        }
-        selectedWord = this.pickStrategicWord(availableWords, lives)
-        confidence = 0.99
-        break
-
-      default:
-        selectedWord = this.pickRandomWord(availableWords)
-        confidence = 0.7
+    // Expert AI: <1% mistake rate
+    const expertMistakeRate = Math.random() * 0.01
+    if (Math.random() < expertMistakeRate) {
+      return this.makeIntentionalMistake(currentLetter)
     }
+
+    // Use strategic word selection
+    const selectedWord = this.pickStrategicWord(availableWords, lives)
+    const confidence = 0.99
 
     return {
       word: selectedWord,
@@ -184,50 +82,20 @@ export class AIPlayer {
     }
   }
 
-  /**
-   * Get available words that start with the given letter and haven't been used
-   */
   private getAvailableWords(letter: string): string[] {
     const letterUpper = letter.toUpperCase()
-    let wordList: string[] = []
+    const wordList = WORD_DICTIONARY[letterUpper] || []
 
-    // Select word list based on difficulty
-    switch (this.difficulty) {
-      case "easy":
-        wordList = EASY_WORDS[letterUpper] || []
-        break
-      case "medium":
-        wordList = MEDIUM_WORDS[letterUpper] || []
-        break
-      case "hard":
-        wordList = HARD_WORDS[letterUpper] || []
-        // Filter for advanced vocabulary (longer words)
-        wordList = wordList.filter((word) => word.length >= 6)
-        break
-      case "expert":
-        wordList = EXPERT_WORDS[letterUpper] || []
-        // Expert uses all words but prioritizes longer, more complex ones
-        break
-      default:
-        wordList = WORD_DICTIONARY[letterUpper] || []
-    }
-
+    // Filter out already used words
     return wordList.filter((word) => !this.usedWords.has(word.toLowerCase()))
   }
 
-  /**
-   * Pick a random word from available words
-   */
   private pickRandomWord(words: string[]): string {
     const randomIndex = Math.floor(Math.random() * words.length)
     return words[randomIndex]
   }
 
-  /**
-   * Pick a strategic word based on game state
-   */
   private pickStrategicWord(words: string[], lives: number): string {
-    // If low on lives, play safer with common words
     if (lives <= 1) {
       const safeWords = words.filter((w) => w.length >= 4 && w.length <= 7)
       return safeWords.length > 0
@@ -235,47 +103,20 @@ export class AIPlayer {
         : this.pickRandomWord(words)
     }
 
-    // Otherwise, prefer longer, more impressive words
     const longWords = words.filter((w) => w.length >= 7)
     return longWords.length > 0 ? this.pickRandomWord(longWords) : this.pickRandomWord(words)
   }
 
-  /**
-   * Simulate AI thinking time
-   */
   private async thinkingDelay(): Promise<void> {
-    let delay: number
-
-    switch (this.difficulty) {
-      case "easy":
-        delay = 3000 + Math.random() * 3000 // 3-6 seconds
-        break
-      case "medium":
-        delay = 2000 + Math.random() * 2000 // 2-4 seconds
-        break
-      case "hard":
-        delay = 1000 + Math.random() * 1000 // 1-2 seconds
-        break
-      case "expert":
-        delay = 500 + Math.random() * 1000 // 0.5-1.5 seconds
-        break
-      default:
-        delay = 2000
-    }
-
+    // Expert AI thinks fast: 500ms - 1500ms
+    const delay = 500 + Math.random() * 1000
     return new Promise((resolve) => setTimeout(resolve, delay))
   }
 
-  /**
-   * Make an intentional mistake (for difficulty balancing)
-   */
   private makeIntentionalMistake(currentLetter: string): AIWordChoice | null {
     const mistakes = [
-      // Return a word that doesn't start with the letter
       { word: "mistake", confidence: 0.3 },
-      // Return a very short invalid word
       { word: "xyz", confidence: 0.2 },
-      // Return null (timeout scenario)
       null,
     ]
 
@@ -283,9 +124,6 @@ export class AIPlayer {
     return randomMistake
   }
 
-  /**
-   * Reset the AI's memory of used words (for new game)
-   */
   reset(): void {
     this.usedWords.clear()
   }
