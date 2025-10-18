@@ -5,6 +5,7 @@ export interface Player {
   isAlive: boolean
   score: number
   lives: number
+  isAI?: boolean
 }
 
 export interface Room {
@@ -17,6 +18,7 @@ export interface Room {
   winner: Player | null
   usedWords: string[]
   lastWord: string | null
+  isAIMode?: boolean
 }
 
 export interface WordValidationResult {

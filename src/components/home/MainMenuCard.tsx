@@ -1,7 +1,8 @@
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Gamepad2, Plus, Users, LogIn } from "lucide-react"
+import { Gamepad2, Plus, Users, LogIn, Bot, HelpCircle } from "lucide-react"
+import { HowToPlayDialog } from "./HowToPlayDialog"
 
 interface MainMenuCardProps {
   showSignInPrompt?: boolean
@@ -49,6 +50,31 @@ export function MainMenuCard({ showSignInPrompt = false, onSignInClick }: MainMe
           <Users className="w-5 h-5 mr-2" />
           Join Existing Room
         </Button>
+
+        <Button
+          size="lg"
+          variant="outline"
+          className="w-full h-14 text-base font-semibold border-2 border-green-600 dark:border-green-500 text-green-600 dark:text-green-500 hover:bg-green-600 hover:text-white dark:hover:bg-green-500 dark:hover:text-white transition-all duration-300 hover:-translate-y-0.5"
+          onClick={() => router.push("/ai-mode")}
+        >
+          <Bot className="w-5 h-5 mr-2" />
+          Play vs AI
+        </Button>
+
+        <div className="pt-2">
+          <HowToPlayDialog 
+            trigger={
+              <Button
+                variant="ghost"
+                size="lg"
+                className="w-full h-12 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                How to Play
+              </Button>
+            }
+          />
+        </div>
 
         {showSignInPrompt && (
           <>
