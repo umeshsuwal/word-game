@@ -30,9 +30,7 @@ export function useWordSubmission(user: User | null | undefined) {
           userName: currentPlayer.username,
           roomCode: "AI-MODE",
           score: word.length,
-        }).catch((error) => {
-          console.error("Failed to save word history:", error)
-        })
+        }).catch(err => console.error("Failed to save word history:", err))
       }
 
       if ("speechSynthesis" in window && validation.phonetic) {

@@ -15,8 +15,8 @@ export function useGameState() {
   } | null>(null)
 
   const generateRandomLetter = useCallback((): string => {
-    const useVowel = Math.random() < 0.3
-    const letters = useVowel ? VOWELS : CONSONANTS
+    const shouldBeVowel = Math.random() < 0.3
+    const letters = shouldBeVowel ? VOWELS : CONSONANTS
     return letters[Math.floor(Math.random() * letters.length)]
   }, [])
 

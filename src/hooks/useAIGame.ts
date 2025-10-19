@@ -25,9 +25,7 @@ export function useAIGame(user: User | null | undefined) {
       duration: 5000,
     })
 
-    setTimeout(() => {
-      router.push("/")
-    }, 5000)
+    setTimeout(() => router.push("/"), 5000)
   }, [router])
 
   const handlePlayerLoseLife = useCallback((playerId: string, reason: string) => {

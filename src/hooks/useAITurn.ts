@@ -7,7 +7,7 @@ import { validateWord } from "@/lib/wordValidation"
 export function useAITurn() {
   const [isAIThinking, setIsAIThinking] = useState(false)
   const aiPlayerRef = useRef<AIPlayer | null>(null)
-  const isProcessingAITurn = useRef(false)
+  const isProcessingTurn = useRef(false)
 
   const initializeAI = useCallback(() => {
     aiPlayerRef.current = new AIPlayer()
@@ -23,7 +23,7 @@ export function useAITurn() {
     onFailure: (reason: string) => void,
     onNoWord: () => void
   ) => {
-    if (!aiPlayerRef.current || isProcessingAITurn.current) {
+    if (!aiPlayerRef.current || isProcessingTurn.current) {
       return
     }
 
@@ -33,7 +33,7 @@ export function useAITurn() {
       return
     }
 
-    isProcessingAITurn.current = true
+    isProcessingTurn.current = true
     setIsAIThinking(true)
 
     try {
@@ -47,7 +47,7 @@ export function useAITurn() {
 
       if (!aiWord) {
         setIsAIThinking(false)
-        isProcessingAITurn.current = false
+        isProcessingTurn.current = false
         onNoWord()
         return
       }
@@ -78,7 +78,7 @@ export function useAITurn() {
           validation.phonetic || ""
         )
       } else {
-        isProcessingAITurn.current = false
+        isProcessingTurn.current = false
         
         toast.error("AI made an error!", {
           description: validation.reason,
@@ -86,16 +86,16 @@ export function useAITurn() {
 
         onFailure(validation.reason || "Invalid word")
       }
-    } catch (error) {
-      console.error("Error in AI turn:", error)
-      isProcessingAITurn.current = false
+    } catch (err) {
+      console.error("Error in AI turn:", err)
+      isProcessingTurn.current = false
       setIsAIThinking(false)
       onFailure("AI error")
     }
   }, [])
 
   const completeAITurn = useCallback(() => {
-    isProcessingAITurn.current = false
+    isProcessingTurn.current = false
   }, [])
 
   return {

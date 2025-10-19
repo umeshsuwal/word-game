@@ -34,7 +34,6 @@ export default function AIMod() {
     }
   }, [user, router])
 
-  // Prefetch word dictionary for better AI performance
   useEffect(() => {
     AIPlayer.prefetchDictionary()
   }, [])
