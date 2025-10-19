@@ -7,6 +7,7 @@ import { useAIGame } from "@/hooks/useAIGame"
 import { AILoadingScreen,  AIGameOverScreen,  AIGameHeader,  AIGameBoard } from "@/components/ai-mode"
 import { PlayersList } from "@/components/game/PlayersList"
 import { UsedWordsList } from "@/components/game/UsedWordsList"
+import { AIPlayer } from "@/lib/aiLogic"
 
 export default function AIMod() {
   const router = useRouter()
@@ -32,6 +33,11 @@ export default function AIMod() {
       router.push("/")
     }
   }, [user, router])
+
+  // Prefetch word dictionary for better AI performance
+  useEffect(() => {
+    AIPlayer.prefetchDictionary()
+  }, [])
 
   if (user === undefined) {
     return <AILoadingScreen isCheckingAuth={true} />
