@@ -14,13 +14,22 @@ export default function HomePage() {
   const router = useRouter()
   const { user, logout } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
+  const [redirectAfterAuth, setRedirectAfterAuth] = useState<string | null>(null)
 
   if (showAuth && !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-4">
           <div className="animate-in fade-in duration-300">
-            <AuthForm onSuccess={() => setShowAuth(false)} />
+            <AuthForm 
+              onSuccess={() => {
+                setShowAuth(false)
+                if (redirectAfterAuth) {
+                  router.push(redirectAfterAuth)
+                  setRedirectAfterAuth(null)
+                }
+              }} 
+            />
           </div>
         </div>
       </div>
@@ -68,7 +77,14 @@ export default function HomePage() {
               size="lg"
               variant="outline"
               className="w-full h-14 text-base font-semibold border-2 border-green-600 dark:border-green-500 text-green-600 dark:text-green-500 hover:bg-green-600 hover:text-white dark:hover:bg-green-500 dark:hover:text-white transition-all duration-300 hover:-translate-y-0.5"
-              onClick={() => router.push("/ai-mode")}
+              onClick={() => {
+                if (!user) {
+                  setRedirectAfterAuth("/ai-mode")
+                  setShowAuth(true)
+                } else {
+                  router.push("/ai-mode")
+                }
+              }}
             >
               <Bot className="w-5 h-5 mr-2" />
               Play vs AI

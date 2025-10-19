@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { useAIGame } from "@/hooks/useAIGame"
 import { AILoadingScreen,  AIGameOverScreen,  AIGameHeader,  AIGameBoard } from "@/components/ai-mode"
@@ -7,6 +9,7 @@ import { PlayersList } from "@/components/game/PlayersList"
 import { UsedWordsList } from "@/components/game/UsedWordsList"
 
 export default function AIMod() {
+  const router = useRouter()
   const { user } = useAuth()
   const {
     gameStarted,
@@ -24,9 +27,22 @@ export default function AIMod() {
     TURN_TIME,
   } = useAIGame(user)
 
-  // Show loading state while checking auth or starting game
-  if (user === undefined || (user && !gameStarted)) {
-    return <AILoadingScreen isCheckingAuth={user === undefined} />
+  useEffect(() => {
+    if (user === null) {
+      router.push("/")
+    }
+  }, [user, router])
+
+  if (user === undefined) {
+    return <AILoadingScreen isCheckingAuth={true} />
+  }
+
+  if (user === null) {
+    return <AILoadingScreen isCheckingAuth={true} />
+  }
+
+  if (user && !gameStarted) {
+    return <AILoadingScreen isCheckingAuth={false} />
   }
 
   if (!room) {
