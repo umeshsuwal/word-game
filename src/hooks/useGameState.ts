@@ -56,17 +56,23 @@ export function useGameState() {
     return nextIndex
   }, [])
 
-  const moveToNextTurn = useCallback((newLetter: string) => {
+  const moveToNextTurn = useCallback((newLetter: string, callback?: (updatedRoom: Room) => void) => {
     setRoom((currentRoom) => {
       if (!currentRoom) return null
 
       const nextIndex = getNextPlayerIndex(currentRoom)
 
-      return {
+      const updatedRoom = {
         ...currentRoom,
         currentPlayerIndex: nextIndex,
         currentLetter: newLetter,
       }
+
+      if (callback) {
+        setTimeout(() => callback(updatedRoom), 0)
+      }
+      
+      return updatedRoom
     })
   }, [getNextPlayerIndex])
 

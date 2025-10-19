@@ -16,6 +16,8 @@ export function useAIGame(user: User | null | undefined) {
   const gameState = useGameState()
   const aiTurn = useAITurn()
   const wordSubmission = useWordSubmission(user)
+
+  const handleAITurnRef = useRef<((room: Room) => void) | null>(null)
   
   const timer = useGameTimer(() => handleTimeout())
 
@@ -65,15 +67,20 @@ export function useAIGame(user: User | null | undefined) {
         return
       }
 
-      gameState.moveToNextTurn(gameState.room.currentLetter)
       timer.resetTimer()
 
-      const nextIndex = gameState.getNextPlayerIndex(gameState.room)
-      if (gameState.room.players[nextIndex].isAI && gameState.room) {
-        handleAITurn(gameState.room)
-      } else {
-        timer.startTimer()
-      }
+      gameState.moveToNextTurn(gameState.room.currentLetter, (updatedRoom) => {
+        console.log("=== After moveToNextTurn callback (timeout) ===")
+        console.log("Updated room currentPlayerIndex:", updatedRoom.currentPlayerIndex)
+        console.log("Is AI turn?", updatedRoom.players[updatedRoom.currentPlayerIndex].isAI)
+        
+        if (updatedRoom.players[updatedRoom.currentPlayerIndex].isAI && handleAITurnRef.current) {
+          console.log("Calling AI turn after timeout")
+          handleAITurnRef.current(updatedRoom)
+        } else {
+          timer.startTimer()
+        }
+      })
     }, 3000)
   }, [timer, gameState, handlePlayerLoseLife, showGameOverScreen])
 
@@ -101,13 +108,20 @@ export function useAIGame(user: User | null | undefined) {
           }
 
           const nextLetter = word.charAt(word.length - 1).toUpperCase()
-          gameState.moveToNextTurn(nextLetter)
           timer.resetTimer()
 
-          const nextIndex = gameState.getNextPlayerIndex(gameState.room)
-          if (!gameState.room.players[nextIndex].isAI) {
-            timer.startTimer()
-          }
+          gameState.moveToNextTurn(nextLetter, (updatedRoom) => {
+            console.log("=== After moveToNextTurn callback (AI success) ===")
+            console.log("Updated room currentPlayerIndex:", updatedRoom.currentPlayerIndex)
+            console.log("Is AI turn?", updatedRoom.players[updatedRoom.currentPlayerIndex].isAI)
+            
+            if (updatedRoom.players[updatedRoom.currentPlayerIndex].isAI && handleAITurnRef.current) {
+              console.log("Calling AI turn after AI success (consecutive AI)")
+              handleAITurnRef.current(updatedRoom)
+            } else {
+              timer.startTimer()
+            }
+          })
         }, 6000)
       },
       (reason) => {
@@ -123,15 +137,20 @@ export function useAIGame(user: User | null | undefined) {
             return
           }
 
-          gameState.moveToNextTurn(gameState.room.currentLetter)
           timer.resetTimer()
-
-          const nextIndex = gameState.getNextPlayerIndex(gameState.room)
-          if (gameState.room.players[nextIndex].isAI && gameState.room) {
-            handleAITurn(gameState.room)
-          } else {
-            timer.startTimer()
-          }
+          
+          gameState.moveToNextTurn(gameState.room.currentLetter, (updatedRoom) => {
+            console.log("=== After moveToNextTurn callback (AI failure) ===")
+            console.log("Updated room currentPlayerIndex:", updatedRoom.currentPlayerIndex)
+            console.log("Is AI turn?", updatedRoom.players[updatedRoom.currentPlayerIndex].isAI)
+            
+            if (updatedRoom.players[updatedRoom.currentPlayerIndex].isAI && handleAITurnRef.current) {
+              console.log("Calling AI turn after AI failure")
+              handleAITurnRef.current(updatedRoom)
+            } else {
+              timer.startTimer()
+            }
+          })
         }, 3000)
       },
       () => {
@@ -153,6 +172,8 @@ export function useAIGame(user: User | null | undefined) {
       }
     )
   }, [aiTurn, gameState, timer, handlePlayerLoseLife, showGameOverScreen])
+
+  handleAITurnRef.current = handleAITurn
 
   const handleSubmitWord = useCallback(async () => {
     if (!gameState.room || gameState.showMeaning) return
@@ -180,15 +201,20 @@ export function useAIGame(user: User | null | undefined) {
           }
 
           const nextLetter = word.charAt(word.length - 1).toUpperCase()
-          gameState.moveToNextTurn(nextLetter)
           timer.resetTimer()
-
-          const nextIndex = gameState.getNextPlayerIndex(gameState.room)
-          if (gameState.room.players[nextIndex].isAI && gameState.room) {
-            handleAITurn(gameState.room)
-          } else {
-            timer.startTimer()
-          }
+          
+          gameState.moveToNextTurn(nextLetter, (updatedRoom) => {
+            console.log("=== After moveToNextTurn callback (human success) ===")
+            console.log("Updated room currentPlayerIndex:", updatedRoom.currentPlayerIndex)
+            console.log("Is AI turn?", updatedRoom.players[updatedRoom.currentPlayerIndex].isAI)
+            
+            if (updatedRoom.players[updatedRoom.currentPlayerIndex].isAI && handleAITurnRef.current) {
+              console.log("Calling AI turn after human success")
+              handleAITurnRef.current(updatedRoom)
+            } else {
+              timer.startTimer()
+            }
+          })
         }, 6000)
       },
       (reason) => {
@@ -204,19 +230,24 @@ export function useAIGame(user: User | null | undefined) {
             return
           }
 
-          gameState.moveToNextTurn(gameState.room.currentLetter)
           timer.resetTimer()
-
-          const nextIndex = gameState.getNextPlayerIndex(gameState.room)
-          if (gameState.room.players[nextIndex].isAI && gameState.room) {
-            handleAITurn(gameState.room)
-          } else {
-            timer.startTimer()
-          }
+          
+          gameState.moveToNextTurn(gameState.room.currentLetter, (updatedRoom) => {
+            console.log("=== After moveToNextTurn callback (human failure) ===")
+            console.log("Updated room currentPlayerIndex:", updatedRoom.currentPlayerIndex)
+            console.log("Is AI turn?", updatedRoom.players[updatedRoom.currentPlayerIndex].isAI)
+            
+            if (updatedRoom.players[updatedRoom.currentPlayerIndex].isAI && handleAITurnRef.current) {
+              console.log("Calling AI turn after human failure")
+              handleAITurnRef.current(updatedRoom)
+            } else {
+              timer.startTimer()
+            }
+          })
         }, 3000)
       }
     )
-  }, [gameState, timer, wordSubmission, handlePlayerLoseLife, showGameOverScreen, handleAITurn])
+  }, [gameState, timer, wordSubmission, handlePlayerLoseLife, showGameOverScreen])
 
   const startGameWithName = useCallback((playerName: string) => {
     if (!user) {
@@ -267,6 +298,11 @@ export function useAIGame(user: User | null | undefined) {
     gameState.setRoom(initialRoom)
     gameState.setGameStarted(true)
     timer.resetTimer()
+    
+    console.log("=== Game started ===")
+    console.log("Initial room:", initialRoom)
+    console.log("Current player index:", initialRoom.currentPlayerIndex)
+    console.log("Current player:", initialRoom.players[initialRoom.currentPlayerIndex])
     
     if (initialRoom.currentPlayerIndex === 0) {
       timer.startTimer()

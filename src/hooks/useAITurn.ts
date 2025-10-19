@@ -23,16 +23,24 @@ export function useAITurn() {
     onFailure: (reason: string) => void,
     onNoWord: () => void
   ) => {
+    console.log("=== processAITurn called ===")
+    console.log("Current player:", currentRoom.players[currentRoom.currentPlayerIndex])
+    console.log("isProcessingTurn:", isProcessingTurn.current)
+    console.log("aiPlayerRef:", aiPlayerRef.current)
+    
     if (!aiPlayerRef.current || isProcessingTurn.current) {
+      console.log("Early return - no AI player or already processing")
       return
     }
 
     const currentPlayer = currentRoom.players[currentRoom.currentPlayerIndex]
     
     if (!currentPlayer.isAI) {
+      console.log("Early return - current player is not AI")
       return
     }
 
+    console.log("Starting AI turn processing...")
     isProcessingTurn.current = true
     setIsAIThinking(true)
 
