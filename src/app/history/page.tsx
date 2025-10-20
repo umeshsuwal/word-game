@@ -18,7 +18,6 @@ import { avataaars, bottts, initials, lorelei, micah, pixelArt } from "@dicebear
 import type { GameHistory } from "@/types/user"
 import { User, Trophy, ArrowLeft } from "lucide-react"
 
-// Avatar styles available
 const avatarStyles = [
   { name: "Avataaars", collection: avataaars, label: "Human" },
   { name: "Bottts", collection: bottts, label: "Robots" },
@@ -40,7 +39,6 @@ export default function HistoryPage() {
   const [selectedAvatarIndex, setSelectedAvatarIndex] = useState(0)
   const [updating, setUpdating] = useState(false)
 
-  // Generate avatar URL from selected style and index
   const generateAvatarUrl = (style: string, index: number) => {
     const avatarStyle = avatarStyles.find((s) => s.name === style)
     if (!avatarStyle) return ""
@@ -52,12 +50,10 @@ export default function HistoryPage() {
     return avatar.toDataUri()
   }
 
-  // Create a short avatar reference string
   const createAvatarReference = (style: string, index: number) => {
     return `dicebear:${style}:${index}`
   }
 
-  // Parse avatar reference string
   const parseAvatarReference = (reference: string) => {
     if (!reference || !reference.startsWith("dicebear:")) {
       return null
@@ -66,7 +62,6 @@ export default function HistoryPage() {
     return { style, index: parseInt(indexStr, 10) }
   }
 
-  // Generate a gallery of avatars for the selected style
   const generateAvatarGallery = (style: string, count: number = 12) => {
     return Array.from({ length: count }, (_, i) => ({
       index: i,
@@ -82,11 +77,9 @@ export default function HistoryPage() {
 
     setDisplayName(user.displayName || "")
     
-    // Check if user has an avatar reference
     if (user.photoURL) {
       const avatarRef = parseAvatarReference(user.photoURL)
       if (avatarRef) {
-        // It's a DiceBear reference
         setSelectedStyle(avatarRef.style)
         setSelectedAvatarIndex(avatarRef.index)
         setPhotoURL(generateAvatarUrl(avatarRef.style, avatarRef.index))
@@ -94,7 +87,6 @@ export default function HistoryPage() {
         setPhotoURL(user.photoURL)
       }
     } else {
-      // No avatar, set default
       const initialAvatar = generateAvatarUrl(selectedStyle, 0)
       setPhotoURL(initialAvatar)
       setSelectedAvatarIndex(0)
@@ -103,7 +95,6 @@ export default function HistoryPage() {
     loadHistory()
   }, [user, router])
 
-  // Update preview when style or avatar selection changes
   useEffect(() => {
     const newAvatarUrl = generateAvatarUrl(selectedStyle, selectedAvatarIndex)
     setPhotoURL(newAvatarUrl)
@@ -128,21 +119,18 @@ export default function HistoryPage() {
 
     setUpdating(true)
     try {
-      // Create short avatar reference instead of full data URI
       const avatarReference = createAvatarReference(selectedStyle, selectedAvatarIndex)
       
-      // Update Firebase Auth profile with short reference
       await updateProfile(user, {
         displayName: displayName.trim() || null,
-        photoURL: avatarReference, // Short string: "dicebear:Avataaars:0"
+        photoURL: avatarReference,
       })
 
-      // Update Firestore user document with both reference and data URI
       const userRef = doc(db, "users", user.uid)
       await updateDoc(userRef, {
         displayName: displayName.trim(),
         photoURL: avatarReference,
-        avatarDataUri: photoURL, // Store full data URI in Firestore
+        avatarDataUri: photoURL, 
         avatarStyle: selectedStyle,
         avatarIndex: selectedAvatarIndex,
       })
@@ -248,7 +236,7 @@ export default function HistoryPage() {
                           key={style.name}
                           onClick={() => {
                             setSelectedStyle(style.name)
-                            setSelectedAvatarIndex(0) // Reset to first avatar when style changes
+                            setSelectedAvatarIndex(0) 
                           }}
                           className={`p-3 rounded-lg border-2 transition-all text-sm font-medium ${
                             selectedStyle === style.name

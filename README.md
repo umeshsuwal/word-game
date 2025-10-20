@@ -12,6 +12,8 @@ A real-time multiplayer word chain game where players create words starting with
 
 - **Real-time Multiplayer** - Play with friends using room codes
 
+- **AI Mode** - Practice against an intelligent AI opponent
+
 - **Word Validation** - Dictionary API integration
 
 - **30-Second Turns** - Fast-paced gameplay
@@ -119,6 +121,8 @@ A real-time multiplayer word chain game where players create words starting with
 
 ## How to Play
 
+### Multiplayer Mode
+
 1. **Create or Join** a room with a 6-character code
 
 2. **Wait** for other players in the lobby
@@ -128,6 +132,22 @@ A real-time multiplayer word chain game where players create words starting with
 4. **Avoid** invalid words, timeouts, or reusing words
 
 5. **Win** by being the last player standing!
+
+### AI Mode
+
+1. **Click** on "Play vs AI" from the main menu
+
+2. **Practice** your vocabulary skills against an intelligent AI opponent
+
+3. **Same rules** apply - create words starting with the last letter
+
+4. **Race to 500 points** - First player (you or AI) to reach 500 points wins!
+
+5. **3 lives system** - Lose all lives before reaching 500 and you lose
+
+6. **No waiting** - instant gameplay without needing other players
+
+7. **Challenge yourself** and improve your word-building skills!
 
 
 ## Tech Stack
@@ -182,12 +202,32 @@ word-game/
 
 - Instant preview
 
+### AI Mode
+
+- Play solo against an intelligent AI opponent
+
+- AI uses advanced word selection strategies
+
+- 3 lives system - make strategic decisions
+
+- **Win by reaching 500 points first** - Race against the AI to hit the score target
+
+- Player with higher score wins when either reaches 500 points
+
+- Lose all 3 lives before reaching 500 and you lose immediately
+
+- Perfect for practice and skill improvement
+
+- No need to wait for other players
+
+- All words validated against dictionary
+
 ### Game History
 - Automatic save after each game
 
 - Last 10 matches displayed
 
-- Winner tracking- Winner tracking
+- Winner tracking
 
 - Score and rank history
 
