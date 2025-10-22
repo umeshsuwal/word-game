@@ -23,27 +23,21 @@ export default function LobbyPage() {
   useEffect(() => {
     const socket = getSocket()
 
-    // Wait for socket connection before setting player ID
     const handleConnect = () => {
       setCurrentPlayerId(socket.id || "")
-      // Request current room state once connected
       socket.emit("get-room", { roomCode })
     }
 
-    // If already connected, set immediately
     if (socket.connected) {
       setCurrentPlayerId(socket.id || "")
       socket.emit("get-room", { roomCode })
     } else {
-      // Wait for connection
       socket.on("connect", handleConnect)
     }
 
-    // Listen for room updates
     socket.on("room-updated", ({ room: updatedRoom }: { room: Room }) => {
       console.log("Room updated:", updatedRoom)
       
-      // Check if number of players decreased (someone disconnected)
       if (room && updatedRoom.players.length < room.players.length) {
         const disconnectedPlayer = room.players.find(
           p => !updatedRoom.players.some(up => up.id === p.id)
@@ -59,7 +53,6 @@ export default function LobbyPage() {
       setLoading(false)
     })
 
-    // Listen for room errors
     socket.on("room-error", ({ message }: { message: string }) => {
       console.error("Room error:", message)
       setLoading(false)

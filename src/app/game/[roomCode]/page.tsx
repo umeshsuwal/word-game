@@ -189,7 +189,6 @@ export default function GameRoomPage() {
       }
     })
 
-    // Listen for word errors
     socket.on("word-error", ({ player, word, reason, livesLeft }: any) => {
       const isMe = player.id === socket.id
       
@@ -199,7 +198,6 @@ export default function GameRoomPage() {
       })
     })
 
-    // Listen for player elimination
     socket.on("player-eliminated", ({ player, reason }: { player: Player; reason: string }) => {
       toast.error(`${player.username} eliminated!`, {
         description: reason,
@@ -207,7 +205,6 @@ export default function GameRoomPage() {
       })
     })
 
-    // Listen for game over
     socket.on("game-over", ({ room: finalRoom }: { room: Room }) => {
       console.log("[v0] Game over, redirecting to results")
       router.push(`/results/${roomCode}`)
@@ -229,7 +226,6 @@ export default function GameRoomPage() {
     }
   }, [roomCode, router])
 
-  // Timer countdown
   useEffect(() => {
     if (!room || !room.gameStarted || showMeaning) return
 
@@ -315,13 +311,10 @@ export default function GameRoomPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
       <div className="container mx-auto max-w-4xl py-8 space-y-6">
-        {/* Header */}
         <GameHeader roomCode={roomCode} alivePlayers={alivePlayers.length} timeLeft={timeLeft} />
 
-        {/* Timer Progress */}
         <Progress value={progressPercentage} className="h-2" />
 
-        {/* Current Letter Display */}
         <CurrentLetterDisplay
           currentLetter={room.currentLetter}
           lastWord={room.lastWord}
@@ -329,7 +322,6 @@ export default function GameRoomPage() {
           isMyTurn={isMyTurn}
         />
 
-        {/* Word Meaning Display */}
         {showMeaning && currentMeaning && (
           <WordMeaningDisplay
             word={currentMeaning.word}
@@ -338,10 +330,8 @@ export default function GameRoomPage() {
           />
         )}
 
-        {/* Used Words List */}
         <UsedWordsList usedWords={room.usedWords} />
 
-        {/* Word Input (only for current player) */}
         {isMyTurn && !showMeaning && (
           <WordInputForm
             currentLetter={room.currentLetter}
@@ -352,7 +342,6 @@ export default function GameRoomPage() {
           />
         )}
 
-        {/* Players List */}
         <PlayersList players={room.players} currentPlayerId={currentPlayer?.id || ""} />
       </div>
     </div>
