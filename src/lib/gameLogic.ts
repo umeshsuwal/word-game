@@ -35,7 +35,6 @@ export class GameLogic {
   constructor(useFirebase: boolean = false) {
     this.useFirebase = useFirebase
     if (useFirebase) {
-      // Dynamically import Firebase Admin only on server
       this.initializeFirebase()
     }
   }
@@ -79,7 +78,6 @@ export class GameLogic {
     this.rooms.set(roomCode, room)
     this.playerRoomMap.set(hostId, { roomCode, username: hostUsername })
 
-    // Save to Firebase
     if (this.useFirebase && this.firebaseDb) {
       try {
         await this.firebaseDb.collection("rooms").doc(roomCode).set({
@@ -114,7 +112,6 @@ export class GameLogic {
     room.players.push(player)
     this.playerRoomMap.set(playerId, { roomCode, username })
 
-    // Update Firebase
     if (this.useFirebase && this.firebaseDb) {
       try {
         await this.firebaseDb.collection("rooms").doc(roomCode).update({
@@ -136,16 +133,13 @@ export class GameLogic {
     room.players = room.players.filter((p) => p.id !== playerId)
     this.playerRoomMap.delete(playerId)
 
-    // If host left, assign new host
     if (room.players.length > 0 && !room.players.some((p) => p.isHost)) {
       room.players[0].isHost = true
     }
 
-    // Delete room if empty
     if (room.players.length === 0) {
       this.rooms.delete(roomCode)
       
-      // Delete from Firebase
       if (this.useFirebase && this.firebaseDb) {
         try {
           await this.firebaseDb.collection("rooms").doc(roomCode).delete()
@@ -157,7 +151,6 @@ export class GameLogic {
       return null
     }
 
-    // Update Firebase
     if (this.useFirebase && this.firebaseDb) {
       try {
         await this.firebaseDb.collection("rooms").doc(roomCode).update({
@@ -180,7 +173,6 @@ export class GameLogic {
     room.currentPlayerIndex = 0
     room.currentLetter = this.generateRandomLetter()
 
-    // Update Firebase
     if (this.useFirebase && this.firebaseDb) {
       try {
         await this.firebaseDb.collection("rooms").doc(roomCode).update({
@@ -212,12 +204,10 @@ export class GameLogic {
     const normalizedWord = word.toLowerCase().trim()
     const currentPlayer = room.players[room.currentPlayerIndex]
 
-    // Check if it's the player's turn
     if (currentPlayer.id !== playerId) {
       return { valid: false, word, reason: "Not your turn" }
     }
 
-    // Check if word starts with the required letter
     if (!normalizedWord.startsWith(room.currentLetter.toLowerCase())) {
       return { 
         valid: false, 
@@ -226,7 +216,6 @@ export class GameLogic {
       }
     }
 
-    // Check if word was already used
     if (room.usedWords.includes(normalizedWord)) {
       return { 
         valid: false, 
@@ -235,12 +224,10 @@ export class GameLogic {
       }
     }
 
-    // Validate with dictionary API - Using multiple APIs for faster response
     try {
-      // First, try Datamuse API (faster, more reliable)
       const dataumuseResponse = await fetch(
         `https://api.datamuse.com/words?sp=${normalizedWord}&md=d&max=1`,
-        { signal: AbortSignal.timeout(3000) } // 3 second timeout
+        { signal: AbortSignal.timeout(3000) }
       )
 
       if (dataumuseResponse.ok) {
@@ -249,12 +236,10 @@ export class GameLogic {
         if (datamuseData.length > 0 && datamuseData[0].word.toLowerCase() === normalizedWord) {
           const meaning = datamuseData[0].defs?.[0]?.replace(/^\w+\t/, "") || "Valid English word"
           
-          // Word is valid - store it as the last word
           room.usedWords.push(normalizedWord)
           room.lastWord = normalizedWord
           currentPlayer.score += normalizedWord.length
 
-          // Save used word to Firebase
           if (this.useFirebase && this.firebaseDb) {
             try {
               await this.firebaseDb.collection("rooms").doc(roomCode).update({
@@ -277,10 +262,9 @@ export class GameLogic {
         }
       }
 
-      // Fallback to original dictionary API (with timeout)
       const response = await fetch(
         `https://api.dictionaryapi.dev/api/v2/entries/en/${normalizedWord}`,
-        { signal: AbortSignal.timeout(3000) } // 3 second timeout
+        { signal: AbortSignal.timeout(3000) }
       )
 
       if (!response.ok) {
@@ -295,12 +279,10 @@ export class GameLogic {
       const meaning = data[0]?.meanings?.[0]?.definitions?.[0]?.definition || "No definition available"
       const phonetic = data[0]?.phonetic || ""
 
-      // Word is valid - store it as the last word
       room.usedWords.push(normalizedWord)
       room.lastWord = normalizedWord
       currentPlayer.score += normalizedWord.length
 
-      // Save used word to Firebase
       if (this.useFirebase && this.firebaseDb) {
         try {
           await this.firebaseDb.collection("rooms").doc(roomCode).update({
@@ -337,12 +319,10 @@ export class GameLogic {
     if (player) {
       player.lives -= 1
       
-      // Only mark as dead when lives reach 0
       if (player.lives <= 0) {
         player.isAlive = false
       }
 
-      // Update Firebase
       if (this.useFirebase && this.firebaseDb) {
         try {
           await this.firebaseDb.collection("rooms").doc(roomCode).update({
@@ -366,12 +346,10 @@ export class GameLogic {
 
     const alivePlayers = room.players.filter((p) => p.isAlive)
 
-    // Check for game over
     if (alivePlayers.length <= 1) {
       room.gameOver = true
       room.winner = alivePlayers[0] || room.players.sort((a, b) => b.score - a.score)[0]
       
-      // Update Firebase
       if (this.useFirebase && this.firebaseDb) {
         try {
           await this.firebaseDb.collection("rooms").doc(roomCode).update({
@@ -387,19 +365,16 @@ export class GameLogic {
       return room
     }
 
-    // Move to next alive player
     do {
       room.currentPlayerIndex = (room.currentPlayerIndex + 1) % room.players.length
     } while (!room.players[room.currentPlayerIndex].isAlive)
 
-    // Set next letter: if there's a last word, use its last letter; otherwise generate random
     if (room.lastWord) {
       room.currentLetter = room.lastWord.charAt(room.lastWord.length - 1).toUpperCase()
     } else {
       room.currentLetter = this.generateRandomLetter()
     }
 
-    // Update Firebase
     if (this.useFirebase && this.firebaseDb) {
       try {
         await this.firebaseDb.collection("rooms").doc(roomCode).update({
@@ -419,21 +394,17 @@ export class GameLogic {
     return TURN_TIME
   }
 
-  // Get player's last room for reconnection
   getPlayerLastRoom(oldPlayerId: string): { roomCode: string; username: string } | null {
     return this.playerRoomMap.get(oldPlayerId) || null
   }
 
-  // Rejoin a room after disconnection
   rejoinRoom(roomCode: string, oldPlayerId: string, newSocketId: string): Room | null {
     const room = this.rooms.get(roomCode)
     if (!room) return null
 
-    // Find the player by their old ID
     const playerIndex = room.players.findIndex((p) => p.id === oldPlayerId)
     if (playerIndex === -1) return null
 
-    // Update player's socket ID
     const player = room.players[playerIndex]
     const oldId = player.id
     player.id = newSocketId
@@ -448,16 +419,11 @@ export class GameLogic {
     return room
   }
 
-  // Check if a player was in a room (for reconnection detection)
   wasPlayerInRoom(playerId: string): boolean {
     return this.playerRoomMap.has(playerId)
   }
 }
 
-/**
- * Standalone word validation function for client-side AI mode
- * This doesn't modify any room state, just validates the word
- */
 export async function validateWord(
   roomCode: string,
   word: string,
@@ -467,12 +433,10 @@ export async function validateWord(
   const normalizedWord = word.toLowerCase().trim()
   const currentPlayer = room.players[room.currentPlayerIndex]
 
-  // Check if it's the player's turn
   if (currentPlayer.id !== playerId) {
     return { valid: false, word, reason: "Not your turn" }
   }
 
-  // Check if word starts with the required letter
   if (!normalizedWord.startsWith(room.currentLetter.toLowerCase())) {
     return {
       valid: false,
@@ -481,7 +445,6 @@ export async function validateWord(
     }
   }
 
-  // Check if word was already used
   if (room.usedWords.includes(normalizedWord)) {
     return {
       valid: false,
@@ -490,12 +453,10 @@ export async function validateWord(
     }
   }
 
-  // Validate with dictionary API
   try {
-    // First, try Datamuse API (faster, more reliable)
     const datamuseResponse = await fetch(
       `https://api.datamuse.com/words?sp=${normalizedWord}&md=d&max=1`,
-      { signal: AbortSignal.timeout(3000) } // 3 second timeout
+      { signal: AbortSignal.timeout(3000) }
     )
 
     if (datamuseResponse.ok) {
@@ -513,7 +474,6 @@ export async function validateWord(
       }
     }
 
-    // Fallback to dictionary API
     const response = await fetch(
       `https://api.dictionaryapi.dev/api/v2/entries/en/${normalizedWord}`,
       { signal: AbortSignal.timeout(3000) }

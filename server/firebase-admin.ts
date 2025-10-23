@@ -4,10 +4,8 @@ import { getFirestore, Firestore } from "firebase-admin/firestore"
 let adminApp: App
 let db: Firestore
 
-// Initialize Firebase Admin
 export function initializeFirebaseAdmin() {
   if (getApps().length === 0) {
-    // For production, use service account
     if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
       adminApp = initializeApp({

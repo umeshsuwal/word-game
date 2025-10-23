@@ -16,7 +16,6 @@ import { db } from "./firebase"
 import type { GameHistory, WordHistory, UserProfile } from "@/types/user"
 
 export class HistoryService {
-  // Save game result to user's history
   static async saveGameHistory(
     userId: string,
     gameData: {
@@ -49,7 +48,6 @@ export class HistoryService {
         gameEndedAt: now,
       })
 
-      // Update user stats
       const userRef = doc(db, "users", userId)
       await updateDoc(userRef, {
         gamesPlayed: increment(1),
@@ -63,7 +61,6 @@ export class HistoryService {
     }
   }
 
-  // Save word usage to history
   static async saveWordHistory(
     userId: string,
     wordData: {
@@ -91,12 +88,9 @@ export class HistoryService {
     }
   }
 
-  // Get user's game history
   static async getUserGameHistory(userId: string, limitCount: number = 50): Promise<GameHistory[]> {
     try {
       const historyRef = collection(db, "gameHistory")
-      // Simplified query without orderBy to avoid composite index requirement
-      // Data will be sorted client-side
       const q = query(
         historyRef,
         where("playerId", "==", userId),
@@ -109,7 +103,6 @@ export class HistoryService {
         ...doc.data(),
       })) as GameHistory[]
       
-      // Sort client-side by playedAt descending
       return games.sort((a, b) => {
         const aTime = a.playedAt?.toMillis?.() || 0
         const bTime = b.playedAt?.toMillis?.() || 0
@@ -121,7 +114,6 @@ export class HistoryService {
     }
   }
 
-  // Get user's word history
   static async getUserWordHistory(userId: string, limitCount: number = 100): Promise<WordHistory[]> {
     try {
       const wordRef = collection(db, "wordHistory")
@@ -137,7 +129,6 @@ export class HistoryService {
         ...doc.data(),
       })) as WordHistory[]
       
-      // Sort client-side by usedAt descending
       return words.sort((a, b) => {
         const aTime = a.usedAt?.toMillis?.() || 0
         const bTime = b.usedAt?.toMillis?.() || 0
@@ -149,7 +140,6 @@ export class HistoryService {
     }
   }
 
-  // Get user profile
   static async getUserProfile(userId: string): Promise<UserProfile | null> {
     try {
       const userRef = doc(db, "users", userId)
@@ -165,7 +155,6 @@ export class HistoryService {
     }
   }
 
-  // Get all unique words used by user
   static async getUserUniqueWords(userId: string): Promise<string[]> {
     try {
       const wordHistory = await this.getUserWordHistory(userId, 1000)
@@ -177,7 +166,6 @@ export class HistoryService {
     }
   }
 
-  // Get user statistics
   static async getUserStats(userId: string): Promise<{
     totalGames: number
     totalWins: number

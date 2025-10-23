@@ -1,9 +1,5 @@
 import type { Room, WordValidationResult } from "@/types/game"
 
-/**
- * Standalone word validation function that can be used on the client side
- * This function does not depend on any server-side modules
- */
 export async function validateWord(
   roomCode: string,
   word: string,
@@ -13,12 +9,10 @@ export async function validateWord(
   const normalizedWord = word.toLowerCase().trim()
   const currentPlayer = room.players[room.currentPlayerIndex]
 
-  // Check if it's the player's turn
   if (currentPlayer.id !== playerId) {
     return { valid: false, word, reason: "Not your turn" }
   }
 
-  // Check if word starts with the required letter
   if (!normalizedWord.startsWith(room.currentLetter.toLowerCase())) {
     return {
       valid: false,
@@ -27,7 +21,6 @@ export async function validateWord(
     }
   }
 
-  // Check if word was already used
   if (room.usedWords.includes(normalizedWord)) {
     return {
       valid: false,
@@ -36,12 +29,10 @@ export async function validateWord(
     }
   }
 
-  // Validate with dictionary API
   try {
-    // First, try Datamuse API (faster, more reliable)
     const datamuseResponse = await fetch(
       `https://api.datamuse.com/words?sp=${normalizedWord}&md=d&max=1`,
-      { signal: AbortSignal.timeout(3000) } // 3 second timeout
+      { signal: AbortSignal.timeout(3000) }
     )
 
     if (datamuseResponse.ok) {
@@ -59,7 +50,6 @@ export async function validateWord(
       }
     }
 
-    // Fallback to dictionary API
     const response = await fetch(
       `https://api.dictionaryapi.dev/api/v2/entries/en/${normalizedWord}`,
       { signal: AbortSignal.timeout(3000) }

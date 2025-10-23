@@ -13,7 +13,6 @@ const io = new Server(httpServer, {
   },
 })
 
-// Initialize GameLogic with Firebase enabled
 const useFirebase = process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? true : false
 const gameLogic = new GameLogic(useFirebase)
 
@@ -24,12 +23,11 @@ if (useFirebase) {
 }
 
 const turnTimers: Map<string, NodeJS.Timeout> = new Map()
-const socketRoomMap: Map<string, string> = new Map() // Track socket to room mapping
+const socketRoomMap: Map<string, string> = new Map()
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id)
 
-  // Check for reconnection
   socket.on("check-reconnection", ({ oldSocketId }) => {
     if (oldSocketId && gameLogic.wasPlayerInRoom(oldSocketId)) {
       const playerInfo = gameLogic.getPlayerLastRoom(oldSocketId)
@@ -43,7 +41,6 @@ io.on("connection", (socket) => {
     }
   })
 
-  // Handle reconnection to a room
   socket.on("rejoin-room", ({ roomCode, oldSocketId }) => {
     const room = gameLogic.rejoinRoom(roomCode, oldSocketId, socket.id)
 
@@ -54,12 +51,10 @@ io.on("connection", (socket) => {
 
     socket.join(roomCode)
     socketRoomMap.set(socket.id, roomCode)
-    socketRoomMap.delete(oldSocketId) // Clean up old socket mapping
+    socketRoomMap.delete(oldSocketId)
     
-    // Notify the rejoined player
     socket.emit("rejoined-room", { room })
     
-    // Notify other players in the room
     socket.to(roomCode).emit("player-reconnected", {
       playerId: socket.id,
       username: room.players.find((p) => p.id === socket.id)?.username,
@@ -73,7 +68,7 @@ io.on("connection", (socket) => {
     const room = await gameLogic.createRoom(roomCode, socket.id, username)
 
     socket.join(roomCode)
-    socketRoomMap.set(socket.id, roomCode) // Track socket to room
+    socketRoomMap.set(socket.id, roomCode)
     socket.emit("room-created", { roomCode, room })
     console.log("Room created:", roomCode)
   })
@@ -87,7 +82,7 @@ io.on("connection", (socket) => {
     }
 
     socket.join(roomCode)
-    socketRoomMap.set(socket.id, roomCode) // Track socket to room
+    socketRoomMap.set(socket.id, roomCode)
     io.to(roomCode).emit("room-updated", { room })
     console.log("Player joined room:", roomCode, username)
   })
@@ -100,7 +95,6 @@ io.on("connection", (socket) => {
       return
     }
 
-    // Ensure socket is in the room
     socket.join(roomCode)
     socket.emit("room-updated", { room })
     console.log("Room state requested:", roomCode)
@@ -146,16 +140,14 @@ io.on("connection", (socket) => {
             startTurnTimer(roomCode)
           }
         }
-      }, 6000) // Show meaning for 6 seconds
+      }, 6000)
     } else {
-      // Invalid word - player loses a life
       const eliminationResult = await gameLogic.eliminatePlayer(roomCode, socket.id)
       
       if (eliminationResult) {
         const player = eliminationResult.room.players.find((p) => p.id === socket.id)
         const livesLeft = eliminationResult.livesLeft
 
-        // Emit word error with reason
         io.to(roomCode).emit("word-error", {
           player,
           word: result.word,
@@ -163,7 +155,6 @@ io.on("connection", (socket) => {
           livesLeft,
         })
 
-        // If player is eliminated (no lives left), emit elimination event
         if (livesLeft <= 0 && player) {
           io.to(roomCode).emit("player-eliminated", {
             player,
@@ -190,14 +181,12 @@ io.on("connection", (socket) => {
   socket.on("disconnect", async () => {
     console.log("User disconnected:", socket.id)
 
-    // Get the room code for this socket
     const roomCode = socketRoomMap.get(socket.id)
     
     if (roomCode) {
       const room = gameLogic.getRoom(roomCode)
       
       if (room) {
-        // If game hasn't started, remove player immediately
         if (!room.gameStarted) {
           const updatedRoom = await gameLogic.removePlayer(roomCode, socket.id)
           
@@ -210,7 +199,6 @@ io.on("connection", (socket) => {
           
           socketRoomMap.delete(socket.id)
         } else {
-          // Game is in progress - notify players and wait for reconnection
           const player = room.players.find((p) => p.id === socket.id)
           
           if (player) {
@@ -221,9 +209,7 @@ io.on("connection", (socket) => {
             
             console.log("Player disconnected during game:", socket.id, "Room:", roomCode)
             
-            // Set a timeout to remove player after 60 seconds if they don't reconnect
             setTimeout(async () => {
-              // Check if player has reconnected (socket ID changed)
               const currentRoom = gameLogic.getRoom(roomCode)
               if (currentRoom) {
                 const stillDisconnected = currentRoom.players.some((p) => p.id === socket.id)
@@ -245,7 +231,7 @@ io.on("connection", (socket) => {
                   socketRoomMap.delete(socket.id)
                 }
               }
-            }, 60000) // 60 second timeout
+            }, 60000)
           }
         }
       }
@@ -265,7 +251,6 @@ io.on("connection", (socket) => {
       if (eliminationResult) {
         const livesLeft = eliminationResult.livesLeft
 
-        // Emit timeout error
         io.to(roomCode).emit("word-error", {
           player: currentPlayer,
           word: "",
@@ -273,7 +258,6 @@ io.on("connection", (socket) => {
           livesLeft,
         })
 
-        // If player is eliminated (no lives left), emit elimination event
         if (livesLeft <= 0) {
           io.to(roomCode).emit("player-eliminated", {
             player: currentPlayer,
@@ -313,7 +297,6 @@ httpServer.listen(Number(PORT), "0.0.0.0", () => {
   console.log(`Socket.io server running on:`)
   console.log(`   - Local:   http://localhost:${PORT}`)
   
-  // Try to get and display the actual network IP
   const nets = networkInterfaces()
   
   for (const name of Object.keys(nets)) {

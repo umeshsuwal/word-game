@@ -15,7 +15,6 @@ import type { Room, Player } from "@/types/game"
 export class FirebaseService {
   private roomsCollection = collection(db, "rooms")
 
-  // Save room to Firestore
   async saveRoom(room: Room): Promise<void> {
     try {
       const roomRef = doc(this.roomsCollection, room.code)
@@ -30,7 +29,6 @@ export class FirebaseService {
     }
   }
 
-  // Get room from Firestore
   async getRoom(roomCode: string): Promise<Room | null> {
     try {
       const roomRef = doc(this.roomsCollection, roomCode)
@@ -47,7 +45,6 @@ export class FirebaseService {
     }
   }
 
-  // Update room in Firestore
   async updateRoom(roomCode: string, updates: Partial<Room>): Promise<void> {
     try {
       const roomRef = doc(this.roomsCollection, roomCode)
@@ -61,7 +58,6 @@ export class FirebaseService {
     }
   }
 
-  // Delete room from Firestore
   async deleteRoom(roomCode: string): Promise<void> {
     try {
       const roomRef = doc(this.roomsCollection, roomCode)
@@ -72,7 +68,6 @@ export class FirebaseService {
     }
   }
 
-  // Add used word to room
   async addUsedWord(roomCode: string, word: string): Promise<void> {
     try {
       const roomRef = doc(this.roomsCollection, roomCode)
@@ -87,7 +82,6 @@ export class FirebaseService {
     }
   }
 
-  // Update player in room
   async updatePlayer(roomCode: string, players: Player[]): Promise<void> {
     try {
       const roomRef = doc(this.roomsCollection, roomCode)
@@ -101,7 +95,6 @@ export class FirebaseService {
     }
   }
 
-  // Update game state
   async updateGameState(
     roomCode: string,
     updates: {

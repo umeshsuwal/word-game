@@ -23,7 +23,6 @@ export default function ResultPage() {
   useEffect(() => {
     const socket = getSocket()
 
-    // Request room state
     const handleConnect = () => {
       socket.emit("get-room", { roomCode })
     }
@@ -51,7 +50,6 @@ export default function ResultPage() {
     }
   }, [roomCode])
 
-  // Save game history when room data is loaded and user is authenticated
   useEffect(() => {
     if (!room || !user || historySaved) return
 
@@ -62,7 +60,6 @@ export default function ResultPage() {
         
         if (!currentPlayer) return
 
-        // Sort players to determine rank
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score)
         const rank = sortedPlayers.findIndex((p) => p.id === currentPlayer.id) + 1
         const isWinner = rank === 1
@@ -74,7 +71,7 @@ export default function ResultPage() {
           score: currentPlayer.score,
           rank,
           isWinner,
-          wordsUsed: room.usedWords, // All words used in the game
+          wordsUsed: room.usedWords,
           totalPlayers: room.players.length,
         })
 
@@ -111,20 +108,16 @@ export default function ResultPage() {
     )
   }
 
-  // Sort players by score
   const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score)
   const winner = room.winner || sortedPlayers[0]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl space-y-6">
-        {/* Winner Card */}
         <WinnerCard winner={winner} />
 
-        {/* Leaderboard */}
         <Leaderboard players={room.players} roomCode={roomCode as string} />
 
-        {/* Action Buttons */}
         <div className="flex gap-3">
           <Button onClick={() => router.push("/")} size="lg" className="flex-1 gap-2">
             <Home className="w-5 h-5" />
