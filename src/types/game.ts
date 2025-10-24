@@ -19,6 +19,7 @@ export interface Room {
   usedWords: string[]
   lastWord: string | null
   isAIMode?: boolean
+  maxPlayers?: number
 }
 
 export interface WordValidationResult {

@@ -54,7 +54,7 @@ export class GameLogic {
     return Math.random().toString(36).substring(2, 8).toUpperCase()
   }
 
-  async createRoom(roomCode: string, hostId: string, hostUsername: string): Promise<Room> {
+  async createRoom(roomCode: string, hostId: string, hostUsername: string, maxPlayers: number = 4): Promise<Room> {
     const room: Room = {
       code: roomCode,
       players: [
@@ -74,6 +74,7 @@ export class GameLogic {
       winner: null,
       usedWords: [],
       lastWord: null,
+      maxPlayers: Math.min(8, Math.max(2, maxPlayers)),
     }
     this.rooms.set(roomCode, room)
     this.playerRoomMap.set(hostId, { roomCode, username: hostUsername })
@@ -100,6 +101,12 @@ export class GameLogic {
   async joinRoom(roomCode: string, playerId: string, username: string): Promise<Room | null> {
     const room = this.rooms.get(roomCode)
     if (!room || room.gameStarted) return null
+
+    // Check if room is full
+    const maxPlayers = room.maxPlayers || 4
+    if (room.players.length >= maxPlayers) {
+      return null
+    }
 
     const player: Player = {
       id: playerId,

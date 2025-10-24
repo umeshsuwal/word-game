@@ -14,6 +14,7 @@ export default function CreateGamePage() {
   const router = useRouter()
   const { user } = useAuth()
   const [username, setUsername] = useState("")
+  const [maxPlayers, setMaxPlayers] = useState(4)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -30,6 +31,11 @@ export default function CreateGamePage() {
       return
     }
 
+    if (maxPlayers < 2 || maxPlayers > 8) {
+      setError("Room size must be between 2 and 8 players")
+      return
+    }
+
     setLoading(true)
     setError("")
 
@@ -37,6 +43,7 @@ export default function CreateGamePage() {
 
     socket.emit("create-room", {
       username: username.trim(),
+      maxPlayers,
     })
 
     socket.once("room-created", ({ roomCode, room }: { roomCode: string; room: Room }) => {
@@ -79,6 +86,39 @@ export default function CreateGamePage() {
                 </div>
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label htmlFor="maxPlayers">Room Size (2-8 players)</Label>
+              <div className="flex items-center gap-4">
+                <Input
+                  id="maxPlayers"
+                  type="number"
+                  min="2"
+                  max="8"
+                  value={maxPlayers}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value)
+                    if (!isNaN(value)) {
+                      setMaxPlayers(Math.min(8, Math.max(2, value)))
+                    }
+                  }}
+                  className="w-20"
+                />
+                <div className="flex gap-2">
+                  {[2, 4, 6, 8].map((size) => (
+                    <Button
+                      key={size}
+                      type="button"
+                      variant={maxPlayers === size ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setMaxPlayers(size)}
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 

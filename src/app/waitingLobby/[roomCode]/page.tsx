@@ -145,8 +145,12 @@ export default function LobbyPage() {
             {/* Players List */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Players ({room.players.length})</span>
-                <Badge variant="secondary">{room.players.length < 2 ? "Waiting..." : "Ready"}</Badge>
+                <span className="text-sm font-medium">
+                  Players ({room.players.length}/{room.maxPlayers || 4})
+                </span>
+                <Badge variant="secondary">
+                  {room.players.length < 2 ? "Waiting..." : room.players.length >= (room.maxPlayers || 4) ? "Full" : "Ready"}
+                </Badge>
               </div>
               <div className="space-y-2">
                 {room.players.map((player) => (

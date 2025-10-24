@@ -63,21 +63,26 @@ io.on("connection", (socket) => {
     console.log("Player rejoined room:", roomCode, socket.id)
   })
 
-  socket.on("create-room", async ({ username }) => {
+  socket.on("create-room", async ({ username, maxPlayers }) => {
     const roomCode = gameLogic.generateRoomCode()
-    const room = await gameLogic.createRoom(roomCode, socket.id, username)
+    const room = await gameLogic.createRoom(roomCode, socket.id, username, maxPlayers || 4)
 
     socket.join(roomCode)
     socketRoomMap.set(socket.id, roomCode)
     socket.emit("room-created", { roomCode, room })
-    console.log("Room created:", roomCode)
+    console.log("Room created:", roomCode, "Max players:", room.maxPlayers)
   })
 
   socket.on("join-room", async ({ roomCode, username }) => {
     const room = await gameLogic.joinRoom(roomCode, socket.id, username)
 
     if (!room) {
-      socket.emit("join-error", { message: "Room not found or game already started" })
+      const existingRoom = gameLogic.getRoom(roomCode)
+      if (existingRoom && existingRoom.players.length >= (existingRoom.maxPlayers || 4)) {
+        socket.emit("join-error", { message: "Room is full" })
+      } else {
+        socket.emit("join-error", { message: "Room not found or game already started" })
+      }
       return
     }
 
