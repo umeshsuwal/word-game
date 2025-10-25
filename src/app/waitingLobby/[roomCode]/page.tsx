@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -126,24 +127,47 @@ export default function LobbyPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <motion.div 
+        className="w-full max-w-md"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Waiting Lobby</CardTitle>
-            <CardDescription>Share the room code with your friends</CardDescription>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <CardTitle className="text-2xl">Waiting Lobby</CardTitle>
+              <CardDescription>Share the room code with your friends</CardDescription>
+            </motion.div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-center gap-3">
+            <motion.div 
+              className="flex items-center justify-center gap-3"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
               <div className="text-3xl font-bold tracking-wider">
                 {roomCode}
               </div>
-              <Button variant="outline" size="icon" onClick={handleCopyCode}>
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Button variant="outline" size="icon" onClick={handleCopyCode}>
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </motion.div>
+            </motion.div>
 
             {/* Players List */}
-            <div className="space-y-2">
+            <motion.div 
+              className="space-y-2"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
                   Players ({room.players.length}/{room.maxPlayers || 4})
@@ -153,46 +177,83 @@ export default function LobbyPage() {
                 </Badge>
               </div>
               <div className="space-y-2">
-                {room.players.map((player) => (
-                  <div
-                    key={player.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <PlayerAvatar username={player.username} size={40} />
-                      <div>
-                        <p className="font-medium">{player.username}</p>
-                        {player.id === currentPlayerId && <p className="text-xs text-muted-foreground">You</p>}
+                <AnimatePresence mode="popLayout">
+                  {room.players.map((player, index) => (
+                    <motion.div
+                      key={player.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.2, delay: index * 0.05 }}
+                      layout
+                    >
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                        <div className="flex items-center gap-3">
+                          <PlayerAvatar username={player.username} size={40} />
+                          <div>
+                            <p className="font-medium">{player.username}</p>
+                            {player.id === currentPlayerId && <p className="text-xs text-muted-foreground">You</p>}
+                          </div>
+                        </div>
+                        {player.isHost && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <Badge variant="default" className="gap-1">
+                              <Crown className="w-3 h-3" />
+                              Host
+                            </Badge>
+                          </motion.div>
+                        )}
                       </div>
-                    </div>
-                    {player.isHost && (
-                      <Badge variant="default" className="gap-1">
-                        <Crown className="w-3 h-3" />
-                        Host
-                      </Badge>
-                    )}
-                  </div>
-                ))}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
-            </div>
+            </motion.div>
 
             {/* Start Game Button (Host Only) */}
             {isHost && (
-              <Button onClick={handleStartGame} size="lg" className="w-full">
-                Start Game
-              </Button>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button onClick={handleStartGame} size="lg" className="w-full">
+                  Start Game
+                </Button>
+              </motion.div>
             )}
 
             {!isHost && (
-              <p className="text-center text-sm text-muted-foreground">Waiting for host to start the game...</p>
+              <motion.p 
+                className="text-center text-sm text-muted-foreground"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+              >
+                Waiting for host to start the game...
+              </motion.p>
             )}
 
-            <Button variant="outline" className="w-full bg-transparent" size="lg" onClick={() => router.push("/")}>
-              Back
-            </Button>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.5 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button variant="outline" className="w-full bg-transparent" size="lg" onClick={() => router.push("/")}>
+                Back
+              </Button>
+            </motion.div>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </div>
   )
 }

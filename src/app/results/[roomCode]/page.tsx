@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { getSocket } from "@/lib/socket"
@@ -113,21 +114,55 @@ export default function ResultPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl space-y-6">
-        <WinnerCard winner={winner} />
+      <motion.div 
+        className="w-full max-w-2xl space-y-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <WinnerCard winner={winner} />
+        </motion.div>
 
-        <Leaderboard players={room.players} roomCode={roomCode as string} />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
+        >
+          <Leaderboard players={room.players} roomCode={roomCode as string} />
+        </motion.div>
 
-        <div className="flex gap-3">
-          <Button onClick={() => router.push("/")} size="lg" className="flex-1 gap-2">
-            <Home className="w-5 h-5" />
-            Home
-          </Button>
-          <Button onClick={() => router.push("/create")} variant="outline" size="lg" className="flex-1">
-            Play Again
-          </Button>
-        </div>
-      </div>
+        <motion.div 
+          className="flex gap-3"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.6 }}
+        >
+          <motion.div 
+            className="flex-1"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Button onClick={() => router.push("/")} size="lg" className="w-full gap-2">
+              <Home className="w-5 h-5" />
+              Home
+            </Button>
+          </motion.div>
+          <motion.div 
+            className="flex-1"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Button onClick={() => router.push("/create")} variant="outline" size="lg" className="w-full">
+              Play Again
+            </Button>
+          </motion.div>
+        </motion.div>
+      </motion.div>
     </div>
   )
 }

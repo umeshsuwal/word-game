@@ -1,3 +1,4 @@
+import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Bot } from "lucide-react"
@@ -44,61 +45,110 @@ export function AIGameBoard({
 
   return (
     <div className="lg:col-span-2 space-y-4">
-      <CurrentLetterDisplay 
-        currentLetter={currentLetter}
-        lastWord={lastWord}
-        currentPlayerName={currentPlayerName}
-        isMyTurn={isMyTurn}
-      />
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <CurrentLetterDisplay 
+          currentLetter={currentLetter}
+          lastWord={lastWord}
+          currentPlayerName={currentPlayerName}
+          isMyTurn={isMyTurn}
+        />
+      </motion.div>
 
       {/* Timer */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Time Remaining</span>
-              <span className="font-mono font-bold">{timeLeft}s</span>
-            </div>
-            <Progress value={progressPercentage} className="h-3" />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* AI Thinking Indicator */}
-      {isAIThinking && (
-        <Card className="border-2 border-green-500">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
+        <Card>
           <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <div className="text-lg font-semibold text-green-600">
-                AI is thinking...
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Time Remaining</span>
+                <motion.span 
+                  className="font-mono font-bold"
+                  animate={{ scale: timeLeft <= 5 ? [1, 1.1, 1] : 1 }}
+                  transition={{ duration: 0.5, repeat: timeLeft <= 5 ? Infinity : 0 }}
+                >
+                  {timeLeft}s
+                </motion.span>
               </div>
-              <div className="text-muted-foreground animate-pulse">
-                <Bot className="w-8 h-8 mx-auto" />
-              </div>
+              <Progress value={progressPercentage} className="h-3" />
             </div>
           </CardContent>
         </Card>
-      )}
+      </motion.div>
+
+      {/* AI Thinking Indicator */}
+      <AnimatePresence>
+        {isAIThinking && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="border-2 border-green-500">
+              <CardContent className="pt-6">
+                <div className="text-center space-y-4">
+                  <div className="text-lg font-semibold text-green-600">
+                    AI is thinking...
+                  </div>
+                  <motion.div 
+                    className="text-muted-foreground"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Bot className="w-8 h-8 mx-auto" />
+                  </motion.div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Word Meaning Display */}
-      {showMeaning && currentMeaning && (
-        <WordMeaningDisplay
-          word={currentMeaning.word}
-          meaning={currentMeaning.meaning}
-          phonetic={currentMeaning.phonetic}
-        />
-      )}
+      <AnimatePresence>
+        {showMeaning && currentMeaning && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <WordMeaningDisplay
+              word={currentMeaning.word}
+              meaning={currentMeaning.meaning}
+              phonetic={currentMeaning.phonetic}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Word Input */}
-      {isMyTurn && !showMeaning && !isAIThinking && (
-        <WordInputForm
-          wordInput={wordInput}
-          onWordInputChange={onWordInputChange}
-          onSubmit={onSubmit}
-          onKeyPress={onKeyPress}
-          currentLetter={currentLetter}
-        />
-      )}
+      <AnimatePresence>
+        {isMyTurn && !showMeaning && !isAIThinking && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <WordInputForm
+              wordInput={wordInput}
+              onWordInputChange={onWordInputChange}
+              onSubmit={onSubmit}
+              onKeyPress={onKeyPress}
+              currentLetter={currentLetter}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

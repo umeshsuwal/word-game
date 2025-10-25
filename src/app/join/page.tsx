@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -66,15 +67,31 @@ export default function JoinGamePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <motion.div 
+        className="w-full max-w-md"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Join Game</CardTitle>
-            <CardDescription>Enter the room code to join an existing game</CardDescription>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <CardTitle className="text-2xl">Join Game</CardTitle>
+              <CardDescription>Enter the room code to join an existing game</CardDescription>
+            </motion.div>
           </CardHeader>
           <CardContent className="space-y-4">
             {!user && (
-              <div className="space-y-2">
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+              >
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
@@ -83,19 +100,29 @@ export default function JoinGamePage() {
                   onChange={(e) => setUsername(e.target.value)}
                   maxLength={20}
                 />
-              </div>
+              </motion.div>
             )}
 
             {user && (
-              <div className="space-y-2">
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+              >
                 <Label>Playing as</Label>
                 <div className="px-3 py-2 bg-muted rounded-md text-sm font-medium">
                   {user.displayName || user.email}
                 </div>
-              </div>
+              </motion.div>
             )}
 
-            <div className="space-y-2">
+            <motion.div 
+              className="space-y-2"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+            >
               <Label htmlFor="roomCode">Room Code</Label>
               <Input
                 id="roomCode"
@@ -104,20 +131,45 @@ export default function JoinGamePage() {
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                 maxLength={6}
               />
-            </div>
+            </motion.div>
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && (
+              <motion.p 
+                className="text-sm text-destructive"
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {error}
+              </motion.p>
+            )}
 
-            <Button onClick={handleJoinRoom} disabled={loading} className="w-full" size="lg">
-              {loading ? "Joining..." : "Join Room"}
-            </Button>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.4 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button onClick={handleJoinRoom} disabled={loading} className="w-full" size="lg">
+                {loading ? "Joining..." : "Join Room"}
+              </Button>
+            </motion.div>
 
-            <Button variant="outline" className="w-full bg-transparent" size="lg" onClick={() => router.push("/")}>
-              Back
-            </Button>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.5 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Button variant="outline" className="w-full bg-transparent" size="lg" onClick={() => router.push("/")}>
+                Back
+              </Button>
+            </motion.div>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </div>
   )
 }
