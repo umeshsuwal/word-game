@@ -54,7 +54,7 @@ export class GameLogic {
     return Math.random().toString(36).substring(2, 8).toUpperCase()
   }
 
-  async createRoom(roomCode: string, hostId: string, hostUsername: string, maxPlayers: number = 4): Promise<Room> {
+  async createRoom(roomCode: string, hostId: string, hostUsername: string, maxPlayers: number = 4, gameMode: "endless" | "classic" = "endless"): Promise<Room> {
     const room: Room = {
       code: roomCode,
       players: [
@@ -75,6 +75,7 @@ export class GameLogic {
       usedWords: [],
       lastWord: null,
       maxPlayers: Math.min(8, Math.max(2, maxPlayers)),
+      gameMode,
     }
     this.rooms.set(roomCode, room)
     this.playerRoomMap.set(hostId, { roomCode, username: hostUsername })
@@ -353,6 +354,30 @@ export class GameLogic {
 
     const alivePlayers = room.players.filter((p) => p.isAlive)
 
+    // Check for classic mode win condition (200 points)
+    if (room.gameMode === "classic") {
+      const winningPlayer = room.players.find((p) => p.score >= 200)
+      if (winningPlayer) {
+        room.gameOver = true
+        room.winner = winningPlayer
+        
+        if (this.useFirebase && this.firebaseDb) {
+          try {
+            await this.firebaseDb.collection("rooms").doc(roomCode).update({
+              gameOver: true,
+              winner: room.winner,
+              updatedAt: new Date(),
+            })
+          } catch (error) {
+            console.error("Error updating game over in Firebase:", error)
+          }
+        }
+        
+        return room
+      }
+    }
+
+    // Check for endless mode win condition (last player standing)
     if (alivePlayers.length <= 1) {
       room.gameOver = true
       room.winner = alivePlayers[0] || room.players.sort((a, b) => b.score - a.score)[0]

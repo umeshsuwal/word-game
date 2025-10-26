@@ -311,7 +311,7 @@ export default function GameRoomPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
       <div className="container mx-auto max-w-4xl py-8 space-y-6">
-        <GameHeader roomCode={roomCode} alivePlayers={alivePlayers.length} timeLeft={timeLeft} />
+        <GameHeader roomCode={roomCode} alivePlayers={alivePlayers.length} timeLeft={timeLeft} gameMode={room.gameMode} />
 
         <Progress value={progressPercentage} className="h-2" />
 

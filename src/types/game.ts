@@ -20,6 +20,7 @@ export interface Room {
   lastWord: string | null
   isAIMode?: boolean
   maxPlayers?: number
+  gameMode?: "endless" | "classic"
 }
 
 export interface WordValidationResult {

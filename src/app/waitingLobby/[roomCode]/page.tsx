@@ -161,7 +161,17 @@ export default function LobbyPage() {
               </motion.div>
             </motion.div>
 
-            {/* Players List */}
+            <motion.div
+              className="flex justify-center"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.25 }}
+            >
+              <Badge variant="outline" className="text-sm px-3 py-1">
+                {room.gameMode === "classic" ? "🏆 Classic Mode - First to 200 points" : "♾️ Endless Mode - Last player standing"}
+              </Badge>
+            </motion.div>
+
             <motion.div 
               className="space-y-2"
               initial={{ opacity: 0, y: 10 }}

@@ -63,14 +63,14 @@ io.on("connection", (socket) => {
     console.log("Player rejoined room:", roomCode, socket.id)
   })
 
-  socket.on("create-room", async ({ username, maxPlayers }) => {
+  socket.on("create-room", async ({ username, maxPlayers, gameMode }) => {
     const roomCode = gameLogic.generateRoomCode()
-    const room = await gameLogic.createRoom(roomCode, socket.id, username, maxPlayers || 4)
+    const room = await gameLogic.createRoom(roomCode, socket.id, username, maxPlayers || 4, gameMode || "endless")
 
     socket.join(roomCode)
     socketRoomMap.set(socket.id, roomCode)
     socket.emit("room-created", { roomCode, room })
-    console.log("Room created:", roomCode, "Max players:", room.maxPlayers)
+    console.log("Room created:", roomCode, "Max players:", room.maxPlayers, "Mode:", room.gameMode)
   })
 
   socket.on("join-room", async ({ roomCode, username }) => {

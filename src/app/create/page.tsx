@@ -16,6 +16,7 @@ export default function CreateGamePage() {
   const { user } = useAuth()
   const [username, setUsername] = useState("")
   const [maxPlayers, setMaxPlayers] = useState(4)
+  const [gameMode, setGameMode] = useState<"endless" | "classic">("endless")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -45,14 +46,22 @@ export default function CreateGamePage() {
     socket.emit("create-room", {
       username: username.trim(),
       maxPlayers,
+      gameMode,
     })
 
     socket.once("room-created", ({ roomCode, room }: { roomCode: string; room: Room }) => {
       router.push(`/waitingLobby/${roomCode}`)
     })
 
-    // Handle potential errors
+    socket.once("error", (error: any) => {
+      setError("Failed to create room. Please try again.")
+      setLoading(false)
+    })
+
     setTimeout(() => {
+      if (loading) {
+        setError("Request timed out. Please check your connection and try again.")
+      }
       setLoading(false)
     }, 5000)
   }
@@ -152,6 +161,76 @@ export default function CreateGamePage() {
                     </motion.div>
                   ))}
                 </div>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              className="space-y-2"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.4 }}
+            >
+              <Label>Game Mode</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                    gameMode === "endless"
+                      ? "border-black dark:border-white bg-black dark:bg-white"
+                      : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600"
+                  }`}
+                  onClick={() => setGameMode("endless")}
+                >
+                  <div className="flex flex-col items-center gap-2 text-center">
+                    <div className="text-3xl">♾️</div>
+                    <div className={`font-semibold text-sm ${
+                      gameMode === "endless"
+                        ? "text-white dark:text-black"
+                        : "text-gray-900 dark:text-gray-100"
+                    }`}>
+                      Endless
+                    </div>
+                    <div className={`text-xs ${
+                      gameMode === "endless"
+                        ? "text-gray-200 dark:text-gray-800"
+                        : "text-gray-600 dark:text-gray-400"
+                    }`}>
+                      Last standing
+                    </div>
+                  </div>
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                    gameMode === "classic"
+                      ? "border-black dark:border-white bg-black dark:bg-white"
+                      : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600"
+                  }`}
+                  onClick={() => setGameMode("classic")}
+                >
+                  <div className="flex flex-col items-center gap-2 text-center">
+                    <div className="text-3xl">🏆</div>
+                    <div className={`font-semibold text-sm ${
+                      gameMode === "classic"
+                        ? "text-white dark:text-black"
+                        : "text-gray-900 dark:text-gray-100"
+                    }`}>
+                      Classic
+                    </div>
+                    <div className={`text-xs ${
+                      gameMode === "classic"
+                        ? "text-gray-200 dark:text-gray-800"
+                        : "text-gray-600 dark:text-gray-400"
+                    }`}>
+                      First to 200
+                    </div>
+                  </div>
+                </motion.button>
               </div>
             </motion.div>
 
