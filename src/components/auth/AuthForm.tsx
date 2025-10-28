@@ -8,12 +8,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
+import { ArrowLeft } from "lucide-react"
 
 interface AuthFormProps {
   onSuccess?: () => void
+  onBack?: () => void
 }
 
-export function AuthForm({ onSuccess }: AuthFormProps) {
+export function AuthForm({ onSuccess, onBack }: AuthFormProps) {
   const { signIn, signUp, signInWithGoogle } = useAuth()
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -64,6 +66,21 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
+          {onBack && (
+            <div className="flex items-center justify-start mb-4">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={onBack}
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </Button>
+              </motion.div>
+            </div>
+          )}
           <CardTitle className="text-2xl">{isSignUp ? "Create Account" : "Welcome Back"}</CardTitle>
           <CardDescription>
             {isSignUp

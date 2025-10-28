@@ -8,7 +8,7 @@ import { AuthForm } from "@/components/auth/AuthForm"
 import { UserProfileBar } from "@/components/home/UserProfileBar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Gamepad2, Users, Bot, HelpCircle, LogIn } from "lucide-react"
+import { Gamepad2, Users, Bot, HelpCircle, LogIn, ArrowLeft } from "lucide-react"
 import { HowToPlayDialog } from "@/components/home/HowToPlayDialog"
 
 export default function HomePage() {
@@ -21,7 +21,7 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
         <motion.div 
-          className="w-full max-w-md space-y-4"
+          className="w-full max-w-md"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
@@ -33,7 +33,11 @@ export default function HomePage() {
                 router.push(redirectAfterAuth)
                 setRedirectAfterAuth(null)
               }
-            }} 
+            }}
+            onBack={() => {
+              setShowAuth(false)
+              setRedirectAfterAuth(null)
+            }}
           />
         </motion.div>
       </div>
